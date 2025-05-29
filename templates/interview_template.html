@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Interview{% endblock %}
+
+{% block content %}
+<a href="/" class="button back-button">🏠 Home</a>
+
+<div class="container">
+    <h1>🎤 Interview</h1>
+    
+    <div class="question-container">
+        <div class="question" id="interview-question">
+            "Nice outfit, tell me about it"
+        </div>
+    </div>
+    
+    <div class="video-container" id="video-container">
+        <img id="video-stream" class="video-stream" src="" alt="Camera will appear here">
+        <div id="recording-status" class="hidden" style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px;">
+            <span class="recording-indicator"></span>
+            <span>Recording...</span>
+        </div>
+    </div>
+    
+    <div style="margin-top: 30px;">
+        <button id="start-btn" class="button primary" onclick="startInterview()">
+            🎬 Start Interview
+        </button>
+        
+        <button id="stop-btn" class="button danger hidden" onclick="stopInterview()">
+            ⏹️ Stop Interview
+        </button>
+    </div>
+    
+    <div id="status" style="margin-top: 20px; font-size: 1.1em;"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let recording = false;
+
+async function startInterview() {
+    const startBtn = document.getElementById('start-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const status = document.getElementById('status');
+    const videoStream = document.getElementById('video-stream');
+    const recordingStatus = document.getElementById('recording-status');
+    
+    try {
+        status.textContent = 'Starting interview...';
+        startBtn.disabled = true;
+        
+        const response = await fetch('/api/start_interview', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            recording = true;
+            status.textContent = 'Interview recording started! Answer the question above.';
+            
+            // Switch interface
+            startBtn.classList.add('hidden');
+            stopBtn.classList.remove('hidden');
+            recordingStatus.classList.remove('hidden');
+            
+            // Start showing the camera stream
+            videoStream.src = '/api/interview_stream';
+            
+            showMessage('Recording started!', 'success');
+            
+        } else {
+            status.textContent = `Error: ${result.error}`;
+            showMessage(result.error, 'error');
+            startBtn.disabled = false;
+        }
+        
+    } catch (error) {
+        status.textContent = `Error: ${error.message}`;
+        showMessage('Failed to start interview', 'error');
+        startBtn.disabled = false;
+    }
+}
+
+async function stopInterview() {
+    const startBtn = document.getElementById('start-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const status = document.getElementById('status');
+    const videoStream = document.getElementById('video-stream');
+    const recordingStatus = document.getElementById('recording-status');
+    
+    try {
+        status.textContent = 'Stopping interview...';
+        stopBtn.disabled = true;
+        
+        const response = await fetch('/api/stop_interview', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            recording = false;
+            status.textContent = 'Interview completed and saved to gallery!';
+            
+            // Reset interface
+            stopBtn.classList.add('hidden');
+            startBtn.classList.remove('hidden');
+            startBtn.disabled = false;
+            recordingStatus.classList.add('hidden');
+            
+            // Stop video stream
+            videoStream.src = '';
+            
+            showMessage('Interview saved successfully!', 'success');
+            
+            // Auto-redirect to gallery after 3 seconds
+            setTimeout(() => {
+                window.location.href = '/gallery';
+            }, 3000);
+            
+        } else {
+            status.textContent = `Error: ${result.error}`;
+            showMessage(result.error, 'error');
+            stopBtn.disabled = false;
+        }
+        
+    } catch (error) {
+        status.textContent = `Error: ${error.message}`;
+        showMessage('Failed to stop interview', 'error');
+        stopBtn.disabled = false;
+    }
+}
+
+// Handle page unload during recording
+window.addEventListener('beforeunload', function(e) {
+    if (recording) {
+        e.preventDefault();
+        e.returnValue = 'Recording in progress. Are you sure you want to leave?';
+        return e.returnValue;
+    }
+});
+
+// Handle stream errors
+document.getElementById('video-stream').onerror = function() {
+    if (recording) {
+        document.getElementById('status').textContent = 'Camera stream error during recording.';
+        showMessage('Camera stream error', 'error');
+    }
+};
+</script>
+{% endblock %}
+    
