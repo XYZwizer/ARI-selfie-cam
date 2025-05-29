@@ -44,40 +44,26 @@ if ! raspi-config nonint get_camera | grep -q "0"; then
 fi
 
 # Create project directory
-PROJECT_DIR="$HOME/flask_camera_app"
+PROJECT_DIR="$HOME"
 print_status "Creating project directory at $PROJECT_DIR..."
 
-if [ -d "$PROJECT_DIR" ]; then
-    print_warning "Project directory already exists. Backing up..."
-    mv "$PROJECT_DIR" "${PROJECT_DIR}_backup_$(date +%Y%m%d_%H%M%S)"
-fi
-
-mkdir -p "$PROJECT_DIR"
-cd "$PROJECT_DIR"
-
-# Create directory structure
-print_status "Creating directory structure..."
-mkdir -p templates
-mkdir -p static/gallery
+print_status "cloning repo into $PROJECT_DIR"
+cd ~
+git clone https://github.com/prgrobots/ARI-selfie-cam
+cd ~ARI-selfie-cam
 
 # Create virtual environment
 print_status "Creating Python virtual environment..."
 python3 -m venv venv
 source venv/bin/activate
 
-# Create requirements.txt
-print_status "Creating requirements.txt..."
-cat > requirements.txt << 'EOF'
-Flask==2.3.3
-picamera2==0.3.12
-opencv-python==4.8.1.78
-numpy==1.24.3
-EOF
 
 # Install Python packages
 print_status "Installing Python packages..."
 pip install --upgrade pip
 pip install -r requirements.txt
+
+
 
 # Check for cameras
 print_status "Checking for cameras..."
@@ -104,7 +90,7 @@ sudo usermod -a -G audio $USER
 print_status "Installation completed!"
 print_status ""
 print_status "Next steps:"
-print_status "1. Copy all the Python and HTML files to $PROJECT_DIR"
+
 print_status "2. Update camera and audio device paths in app.py if needed"
 print_status "3. Run the server with: cd $PROJECT_DIR && source venv/bin/activate && python app.py"
 print_status "4. Access the interface at http://localhost:5000"
