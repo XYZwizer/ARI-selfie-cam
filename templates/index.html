@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Camera Server - Main Menu{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>📸 Camera Server</h1>
+    <p style="font-size: 1.2em; margin-bottom: 40px; opacity: 0.9;">
+        Welcome to the Raspberry Pi Camera Server
+    </p>
+    
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
+        <a href="/selfie" class="button primary" style="min-width: 200px;">
+            🤳 Take a Selfie
+        </a>
+        
+        <a href="/interview" class="button primary" style="min-width: 200px;">
+            🎤 Interview
+        </a>
+        
+        <a href="/gallery" class="button primary" style="min-width: 200px;">
+            🖼️ Gallery
+        </a>
+    </div>
+    
+    <p style="margin-top: 50px; opacity: 0.7; font-size: 0.9em;">
+        Powered by Raspberry Pi & Flask
+    </p>
+</div>
+{% endblock %}

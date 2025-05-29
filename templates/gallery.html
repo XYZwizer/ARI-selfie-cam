@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Gallery{% endblock %}
+
+{% block content %}
+<a href="/" class="button back-button">🏠 Home</a>
+
+<div class="container">
+    <h1>🖼️ Gallery</h1>
+    
+    {% if files %}
+        <p style="margin-bottom: 30px; opacity: 0.9;">
+            {{ files|length }} file(s) in your gallery
+        </p>
+        
+        <div class="gallery-grid">
+            {% for file in files %}
+                <div class="gallery-item">
+                    <div class="gallery-item-title">
+                        {{ file.replace('_', ' ').replace('.jpg', '').replace('.mp4', '') }}
+                    </div>
+                    
+                    {% if file.endswith('.jpg') %}
+                        <img src="/gallery/{{ file }}" alt="Photo: {{ file }}" 
+                             onclick="openLightbox('/gallery/{{ file }}', 'image')">
+                    {% elif file.endswith('.mp4') %}
+                        <video controls preload="metadata">
+                            <source src="/gallery/{{ file }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    {% endif %}
+                    
+                    <div style="margin-top: 10px;">
+                        <a href="/gallery/{{ file }}" download class="button" style="font-size: 0.8em; padding: 8px 15px;">
+                            💾 Download
+                        </a>
+                        <button onclick="deleteFile('{{ file }}')" class="button danger" style="font-size: 0.8em; padding: 8px 15px;">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <div style="margin-top: 40px;">
+            <button onclick="clearGallery()" class="button danger">
+                🗑️ Clear All Files
+            </button>
+        </div>
+        
+    {% else %}
+        <div style="margin-top: 50px;">
+            <p style="font-size: 1.3em; opacity: 0.7; margin-bottom: 30px;">
+                📷 No photos or videos yet
+            </p>
+            <p style="opacity: 0.6; margin-bottom: 40px;">
+                Take some selfies or record interviews to see them here!
+            </p>
+            
+            <div>
+                <a href="/selfie" class="button primary">
+                    📸 Take a Selfie
+                </a>
+                <a href="/interview" class="button primary">
+                    🎤 Start Interview
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Lightbox for viewing images -->
+<div id="lightbox" class="hidden" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px;">
+    <div style="position: relative; max-width: 90%; max-height: 90%;">
+        <img id="lightbox-image" style="max-width: 100%; max-height: 100%; border-radius: 10px;">
+        <button onclick="closeLightbox()" style="position: absolute; top: -10px; right: -10px; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 2em; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; backdrop-filter: blur(10px);">
+            ×
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openLightbox(src, type) {
+    if (type === 'image') {
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImage = document.getElementById('lightbox-image');
+        
+        lightboxImage.src = src;
+        lightbox.classList.remove('hidden');
+    }
+}
+
+function closeLightbox() {
+    document.getElementById('lightbox').classList.add('hidden');
+}
+
+// Close lightbox on escape key or click outside
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeLightbox();
+    }
+});
+
+document.getElementById('lightbox').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeLightbox();
+    }
+});
+
+async function deleteFile(filename) {
+    if (!confirm(`Are you sure you want to delete "${filename}"?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/delete_file/${filename}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage('File deleted successfully', 'success');
+            // Reload page to update gallery
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showMessage(result.error, 'error');
+        }
+        
+    } catch (error) {
+        showMessage('Failed to delete file', 'error');
+    }
+}
+
+async function clearGallery() {
+    if (!confirm('Are you sure you want to delete ALL files in the gallery? This cannot be undone!')) {
+        return;
+    }
+    
+    const galleryItems = document.querySelectorAll('.gallery-item');
+    const filenames = Array.from(galleryItems).map(item => {
+        const img = item.querySelector('img');
+        const video = item.querySelector('video source');
+        if (img) {
+            return img.src.split('/').pop();
+        } else if (video) {
+            return video.src.split('/').pop();
+        }
+    });
+    
+    let deletedCount = 0;
+    let errorCount = 0;
+    
+    for (const filename of filenames) {
+        try {
+            const response = await fetch(`/api/delete_file/${filename}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                deletedCount++;
+            } else {
+                errorCount++;
+            }
+        } catch (error) {
+            errorCount++;
+        }
+    }
+    
+    if (errorCount === 0) {
+        showMessage(`All ${deletedCount} files deleted successfully`, 'success');
+    } else {
+        showMessage(`${deletedCount} files deleted, ${errorCount} errors`, 'error');
+    }
+    
+    setTimeout(() => {
+        window.location.reload();
+    }, 2000);
+}
+</script>
+{% endblock %}
