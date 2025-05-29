@@ -1,7 +1,7 @@
 # ARI-selfie-cam
 Using ARI as a selfie cam and interviewer
-![image](https://github.com/user-attachments/assets/9c378336-4cb4-4fd5-9f05-a0682a221205 | width=50)
 <img src="https://github.com/user-attachments/assets/9c378336-4cb4-4fd5-9f05-a0682a221205" width="500" >
+<img src="https://github.com/user-attachments/assets/507ea10c-0f5d-4f71-80da-b9b85901bd2d" width="500" >
 # Raspberry Pi Camera Server Setup
 
 ## Project Structure
