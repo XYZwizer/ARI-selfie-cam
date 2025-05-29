@@ -43,14 +43,14 @@ if ! raspi-config nonint get_camera | grep -q "0"; then
     print_warning "Camera interface may not be enabled. Please run 'sudo raspi-config' and enable camera."
 fi
 
-# Create project directory
-PROJECT_DIR="$HOME"
-print_status "Creating project directory at $PROJECT_DIR..."
+# # Create project directory
+PROJECT_DIR="$HOME/ARI-selfie-cam"
+# print_status "Creating project directory at $PROJECT_DIR..."
 
-print_status "cloning repo into $PROJECT_DIR"
-cd ~
-git clone https://github.com/prgrobots/ARI-selfie-cam
-cd ~ARI-selfie-cam
+# print_status "updating repo into $PROJECT_DIR"
+# cd ~
+# git pull https://github.com/prgrobots/ARI-selfie-cam
+
 
 # Create virtual environment
 print_status "Creating Python virtual environment..."
@@ -109,4 +109,4 @@ chmod +x start_server.sh
 print_status "Created start_server.sh script for easy startup"
 
 echo ""
-echo "🎉 Installation complete! Follow the setup instructions to copy your files and start the server."
+echo "🎉 Installation complete!"
