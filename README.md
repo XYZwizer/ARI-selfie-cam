@@ -4,7 +4,9 @@
 
 <img src="https://github.com/user-attachments/assets/c6c46409-a802-460d-bb4e-117b84424847" width="500" >
 <img src="https://github.com/user-attachments/assets/46c10264-137e-40d0-b7c5-729bd530f078" width="500" >
+
 ## Admin control from phone - will update with controller as as ARI's webcomander
+
 <img src="https://github.com/user-attachments/assets/21aa0166-592f-4600-b705-4c1de918ebad" width="200" >
 
 
