@@ -1,6 +1,8 @@
 # ARI-selfie-cam
 <img src="https://github.com/user-attachments/assets/9c378336-4cb4-4fd5-9f05-a0682a221205" width="500" >
 <img src="https://github.com/user-attachments/assets/507ea10c-0f5d-4f71-80da-b9b85901bd2d" width="500" >
+![image](https://github.com/user-attachments/assets/46c10264-137e-40d0-b7c5-729bd530f078)
+
 
 # Raspberry Pi Camera Server Setup
 
