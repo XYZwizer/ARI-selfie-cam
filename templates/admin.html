@@ -73,6 +73,46 @@
             background: #667eea;
         }
 
+        /* Joystick Control Section */
+        .joystick-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .joystick-area {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+            border-radius: 50%;
+            position: relative;
+            border: 3px solid #667eea;
+            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .joystick-knob {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            cursor: grab;
+            border: 2px solid #fff;
+            box-shadow: 0 3px 8px rgba(255, 140, 66, 0.4);
+            transition: box-shadow 0.2s;
+        }
+
+        .joystick-knob:active {
+            cursor: grabbing;
+            box-shadow: 0 4px 12px rgba(255, 140, 66, 0.6);
+        }
+
         /* ARI Control Section */
         .text-input {
             width: 100%;
@@ -267,381 +307,246 @@
             border: 1px solid #c3e6cb;
         }
 
-        .alert-error {
+        .alert-danger {
             background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
-        }
-
-        .alert-info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 480px) {
-            .container {
-                margin: 0;
-                border-radius: 0;
-                min-height: 100vh;
-            }
-            
-            .motion-buttons {
-                grid-template-columns: 1fr;
-            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🤖 Admin Control</h1>
-            <p>Camera & ARI Robot Management</p>
+            <h1>🤖 ARI Robot Control</h1>
+            <p>Advanced camera & motion control interface</p>
         </div>
 
-        <!-- Alert messages -->
-        <div id="alert" class="alert"></div>
-
-        <!-- ARI Robot Control -->
+        <!-- Joystick Control Section -->
         <div class="section">
-            <div class="section-title">🗣️ ARI Robot Speech</div>
-            <textarea id="speechText" class="text-input" rows="3" placeholder="Enter text for ARI to speak..."></textarea>
-            <button onclick="sendSpeech()" class="send-btn">
-                <span id="speechStatus">📢 Send to ARI</span>
-            </button>
-            
-            <div class="section-title" style="margin-top: 20px;">🤖 ARI Motions</div>
-            <div class="motion-buttons">
-                <button onclick="sendMotion('wave_hello')" class="motion-btn">👋 Wave Hello</button>
-                <button onclick="sendMotion('shake_left')" class="motion-btn">👈 Shake Left</button>
-                <button onclick="sendMotion('nod_yes')" class="motion-btn">✅ Nod Yes</button>
-                <button onclick="sendMotion('shake_no')" class="motion-btn">❌ Shake No</button>
+            <div class="section-title">🕹️ Movement Control</div>
+            <div class="joystick-container">
+                <div class="joystick-area" id="joystickArea">
+                    <div class="joystick-knob" id="joystickKnob"></div>
+                </div>
             </div>
         </div>
 
-        <!-- Camera Preview -->
+        <!-- ARI Control Section -->
+        <div class="section">
+            <div class="section-title">💬 Voice Command</div>
+            <input type="text" class="text-input" id="textInput" placeholder="Enter command for ARI...">
+            <button class="send-btn" onclick="sendCommand()">Send to ARI</button>
+            
+            <div class="motion-buttons">
+                <button class="motion-btn" onclick="performMotion('wave')">👋 Wave</button>
+                <button class="motion-btn" onclick="performMotion('nod')">👤 Nod</button>
+                <button class="motion-btn" onclick="performMotion('look_around')">👀 Look Around</button>
+                <button class="motion-btn" onclick="performMotion('gesture')">✋ Gesture</button>
+            </div>
+        </div>
+
+        <!-- Camera Preview Section -->
         <div class="section">
             <div class="section-title">📹 Camera Preview</div>
             <div class="camera-preview">
                 <div class="preview-container">
-                    <img id="previewFeed" class="preview-feed" style="display: none;" src="">
-                    <div id="previewPlaceholder" class="preview-placeholder">
-                        Click "Start Preview" to see camera feed
+                    <div class="preview-placeholder" id="previewPlaceholder">
+                        Camera feed will appear here
                     </div>
+                    <img class="preview-feed" id="previewFeed" style="display: none;">
                 </div>
                 <div class="preview-controls">
-                    <button onclick="startPreview()" class="preview-btn start-preview">▶️ Start Preview</button>
-                    <button onclick="stopPreview()" class="preview-btn stop-preview">⏹️ Stop Preview</button>
+                    <button class="preview-btn start-preview" onclick="startPreview()">Start Preview</button>
+                    <button class="preview-btn stop-preview" onclick="stopPreview()">Stop Preview</button>
                 </div>
             </div>
         </div>
 
-        <!-- Quick Actions -->
-        <div class="section">
-            <div class="section-title">
-                📸 Quick Actions
-                <span id="recordingStatus" class="status-indicator status-inactive"></span>
-            </div>
-            <div class="nav-buttons">
-                <button onclick="takeSelfie()" class="nav-btn selfie">📷 Take Selfie</button>
-                <button onclick="toggleInterview()" id="interviewBtn" class="nav-btn interview">🎥 Start Interview</button>
-            </div>
-        </div>
-
-        <!-- Navigation -->
+        <!-- Navigation Section -->
         <div class="section">
             <div class="section-title">🧭 Navigation</div>
             <div class="nav-buttons">
-                <button onclick="goToPage('/')" class="nav-btn home">🏠 Home</button>
-                <button onclick="goToPage('/gallery')" class="nav-btn gallery">🖼️ Gallery</button>
-            </div>
-        </div>
-
-        <!-- System Status -->
-        <div class="section">
-            <div class="section-title">⚡ System Status</div>
-            <div id="systemStatus">
-                <p><span id="cameraStatus" class="status-indicator status-inactive"></span>Cameras: Loading...</p>
-                <p><span id="previewStatusIndicator" class="status-indicator status-inactive"></span>Preview: Inactive</p>
-                <p><span id="recordingStatusIndicator" class="status-indicator status-inactive"></span>Recording: Inactive</p>
+                <button class="nav-btn selfie" onclick="navigateTo('selfie')">📸 Selfie Mode</button>
+                <button class="nav-btn interview" onclick="navigateTo('interview')">🎤 Interview</button>
+                <button class="nav-btn gallery" onclick="navigateTo('gallery')">🖼️ Gallery</button>
+                <button class="nav-btn home" onclick="navigateTo('home')">🏠 Home</button>
             </div>
         </div>
     </div>
 
     <script>
-        let isRecording = false;
-        let previewActive = false;
-
-        // Initialize page
+        // Joystick functionality
+        class VirtualJoystick {
+            constructor(container, knob) {
+                this.container = container;
+                this.knob = knob;
+                this.isDragging = false;
+                this.centerX = 0;
+                this.centerY = 0;
+                this.currentX = 0;
+                this.currentY = 0;
+                this.maxDistance = 40; // Maximum distance from center
+                
+                this.init();
+            }
+            
+            init() {
+                // Calculate center position
+                const rect = this.container.getBoundingClientRect();
+                this.centerX = rect.width / 2;
+                this.centerY = rect.height / 2;
+                
+                // Event listeners
+                this.knob.addEventListener('mousedown', this.startDrag.bind(this));
+                this.knob.addEventListener('touchstart', this.startDrag.bind(this));
+                
+                document.addEventListener('mousemove', this.drag.bind(this));
+                document.addEventListener('touchmove', this.drag.bind(this));
+                
+                document.addEventListener('mouseup', this.stopDrag.bind(this));
+                document.addEventListener('touchend', this.stopDrag.bind(this));
+                
+                // Container click to move knob
+                this.container.addEventListener('click', this.moveToClick.bind(this));
+                
+                // Prevent context menu
+                this.container.addEventListener('contextmenu', e => e.preventDefault());
+            }
+            
+            startDrag(e) {
+                this.isDragging = true;
+                this.knob.style.transition = 'none';
+                e.preventDefault();
+            }
+            
+            drag(e) {
+                if (!this.isDragging) return;
+                
+                const rect = this.container.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                
+                const x = clientX - rect.left - this.centerX;
+                const y = clientY - rect.top - this.centerY;
+                
+                this.updatePosition(x, y);
+                e.preventDefault();
+            }
+            
+            stopDrag() {
+                if (!this.isDragging) return;
+                this.isDragging = false;
+                this.knob.style.transition = 'all 0.2s ease-out';
+                this.returnToCenter();
+            }
+            
+            moveToClick(e) {
+                if (this.isDragging) return;
+                
+                const rect = this.container.getBoundingClientRect();
+                const x = e.clientX - rect.left - this.centerX;
+                const y = e.clientY - rect.top - this.centerY;
+                
+                this.knob.style.transition = 'all 0.2s ease-out';
+                this.updatePosition(x, y);
+                
+                // Return to center after a short delay
+                setTimeout(() => this.returnToCenter(), 200);
+            }
+            
+            updatePosition(x, y) {
+                const distance = Math.sqrt(x * x + y * y);
+                
+                if (distance > this.maxDistance) {
+                    const angle = Math.atan2(y, x);
+                    x = Math.cos(angle) * this.maxDistance;
+                    y = Math.sin(angle) * this.maxDistance;
+                }
+                
+                this.currentX = x;
+                this.currentY = y;
+                
+                this.knob.style.transform = `translate(${x - 20}px, ${y - 20}px)`;
+                
+                // Send joystick data to server (removed value display)
+                const normalizedX = x / this.maxDistance;
+                const normalizedY = -y / this.maxDistance; // Invert Y for intuitive up/down
+                
+                this.sendJoystickData(normalizedX, normalizedY);
+            }
+            
+            returnToCenter() {
+                this.currentX = 0;
+                this.currentY = 0;
+                this.knob.style.transform = 'translate(-50%, -50%)';
+                
+                // Send stop command
+                this.sendJoystickData(0, 0);
+            }
+            
+            sendJoystickData(x, y) {
+                // Send data to your Flask server
+                fetch('/api/joystick', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        x: x,
+                        y: y,
+                        timestamp: Date.now()
+                    })
+                }).catch(err => console.log('Joystick data send failed:', err));
+            }
+        }
+        
+        // Initialize joystick when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            updateStatus();
-            setInterval(updateStatus, 2000); // Update status every 2 seconds
+            const joystickArea = document.getElementById('joystickArea');
+            const joystickKnob = document.getElementById('joystickKnob');
+            new VirtualJoystick(joystickArea, joystickKnob);
         });
-
-        // Show alert messages
-        function showAlert(message, type = 'info') {
-            const alert = document.getElementById('alert');
-            alert.className = `alert alert-${type}`;
-            alert.textContent = message;
-            alert.style.display = 'block';
-            
-            setTimeout(() => {
-                alert.style.display = 'none';
-            }, 3000);
-        }
-
-        // ARI Robot Functions
-        async function sendSpeech() {
-            const text = document.getElementById('speechText').value.trim();
-            if (!text) {
-                showAlert('Please enter some text first!', 'error');
-                return;
-            }
-
-            const statusBtn = document.getElementById('speechStatus');
-            statusBtn.textContent = '🔄 Sending...';
-            
-            try {
-                const response = await fetch('/api/admin/ari_speak', {
+        
+        // Existing functions (you can adapt these to your Flask routes)
+        function sendCommand() {
+            const text = document.getElementById('textInput').value;
+            if (text.trim()) {
+                fetch('/api/command', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        text: text,
-                        lang_id: 'en_GB'
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: text })
                 });
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    showAlert('✅ Speech sent to ARI successfully!', 'success');
-                    document.getElementById('speechText').value = '';
-                } else {
-                    showAlert(`❌ Error: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                showAlert(`❌ Connection error: ${error.message}`, 'error');
-            }
-            
-            statusBtn.textContent = '📢 Send to ARI';
-        }
-
-        async function sendMotion(motionName) {
-            try {
-                const response = await fetch('/api/admin/ari_motion', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        motion: motionName
-                    })
-                });
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    showAlert(`✅ Motion "${motionName}" sent to ARI!`, 'success');
-                } else {
-                    showAlert(`❌ Motion error: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                showAlert(`❌ Connection error: ${error.message}`, 'error');
+                document.getElementById('textInput').value = '';
             }
         }
-
-        // Camera Preview Functions
-        async function startPreview() {
-            try {
-                const response = await fetch('/api/admin/start_preview', {
-                    method: 'POST'
-                });
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    const feed = document.getElementById('previewFeed');
-                    const placeholder = document.getElementById('previewPlaceholder');
-                    
-                    feed.src = `/admin/camera_feed?t=${Date.now()}`;
-                    feed.style.display = 'block';
-                    placeholder.style.display = 'none';
-                    
-                    previewActive = true;
-                    showAlert('✅ Camera preview started!', 'success');
-                } else {
-                    showAlert(`❌ Preview error: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                showAlert(`❌ Connection error: ${error.message}`, 'error');
-            }
+        
+        function performMotion(motionType) {
+            fetch('/api/motion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ motion: motionType })
+            });
         }
-
-        async function stopPreview() {
-            try {
-                const response = await fetch('/api/admin/stop_preview', {
-                    method: 'POST'
-                });
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    const feed = document.getElementById('previewFeed');
-                    const placeholder = document.getElementById('previewPlaceholder');
-                    
-                    feed.style.display = 'none';
-                    feed.src = '';
-                    placeholder.style.display = 'flex';
-                    placeholder.textContent = 'Click "Start Preview" to see camera feed';
-                    
-                    previewActive = false;
-                    showAlert('✅ Camera preview stopped!', 'success');
-                } else {
-                    showAlert(`❌ Stop error: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                showAlert(`❌ Connection error: ${error.message}`, 'error');
-            }
+        
+        function startPreview() {
+            fetch('/api/camera/start', { method: 'POST' });
         }
-
-        // Camera Action Functions
-        async function takeSelfie() {
-            try {
-                const response = await fetch('/api/take_selfie', {
-                    method: 'POST'
-                });
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    showAlert(`✅ Selfie captured: ${result.filename}`, 'success');
-                } else {
-                    showAlert(`❌ Selfie error: ${result.error}`, 'error');
-                }
-            } catch (error) {
-                showAlert(`❌ Connection error: ${error.message}`, 'error');
-            }
+        
+        function stopPreview() {
+            fetch('/api/camera/stop', { method: 'POST' });
         }
-
-        async function toggleInterview() {
-            const btn = document.getElementById('interviewBtn');
-            
-            if (!isRecording) {
-                try {
-                    const response = await fetch('/api/start_interview', {
-                        method: 'POST'
-                    });
-
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        isRecording = true;
-                        btn.textContent = '⏹️ Stop Interview';
-                        btn.style.background = 'linear-gradient(45deg, #dc3545, #c82333)';
-                        showAlert('✅ Interview recording started!', 'success');
-                    } else {
-                        showAlert(`❌ Start error: ${result.error}`, 'error');
-                    }
-                } catch (error) {
-                    showAlert(`❌ Connection error: ${error.message}`, 'error');
-                }
-            } else {
-                try {
-                    const response = await fetch('/api/stop_interview', {
-                        method: 'POST'
-                    });
-
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        isRecording = false;
-                        btn.textContent = '🎥 Start Interview';
-                        btn.style.background = 'linear-gradient(45deg, #4ecdc4, #44a08d)';
-                        showAlert('✅ Interview recording stopped and saved!', 'success');
-                    } else {
-                        showAlert(`❌ Stop error: ${result.error}`, 'error');
-                    }
-                } catch (error) {
-                    showAlert(`❌ Connection error: ${error.message}`, 'error');
-                }
-            }
+        
+        function navigateTo(page) {
+            window.location.href = `/${page}`;
         }
-
-        // Navigation Functions
-        function goToPage(url) {
-            window.location.href = url;
-        }
-
-        // Status Update Function
-        async function updateStatus() {
-            try {
-                const response = await fetch('/api/status');
-                const status = await response.json();
-                
-                // Update camera status
-                const cameraStatus = document.getElementById('cameraStatus');
-                if (status.csi_camera && status.uvc_camera) {
-                    cameraStatus.className = 'status-indicator status-active';
-                    cameraStatus.nextSibling.textContent = 'Cameras: Both Available';
-                } else if (status.csi_camera || status.uvc_camera) {
-                    cameraStatus.className = 'status-indicator status-active';
-                    cameraStatus.nextSibling.textContent = 'Cameras: Partially Available';
-                } else {
-                    cameraStatus.className = 'status-indicator status-inactive';
-                    cameraStatus.nextSibling.textContent = 'Cameras: Not Available';
+        
+        // Allow Enter key to send command
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('textInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendCommand();
                 }
-
-                // Update preview status
-                const previewStatus = document.getElementById('previewStatusIndicator');
-                if (status.preview_active) {
-                    previewStatus.className = 'status-indicator status-active';
-                    previewStatus.nextSibling.textContent = 'Preview: Active';
-                } else {
-                    previewStatus.className = 'status-indicator status-inactive';
-                    previewStatus.nextSibling.textContent = 'Preview: Inactive';
-                }
-
-                // Update recording status
-                const recordingStatusIndicator = document.getElementById('recordingStatusIndicator');
-                const recordingStatus = document.getElementById('recordingStatus');
-                const interviewBtn = document.getElementById('interviewBtn');
-                
-                if (status.recording) {
-                    recordingStatusIndicator.className = 'status-indicator status-active';
-                    recordingStatusIndicator.nextSibling.textContent = 'Recording: Active';
-                    recordingStatus.className = 'status-indicator status-active';
-                    
-                    if (!isRecording) {
-                        isRecording = true;
-                        interviewBtn.textContent = '⏹️ Stop Interview';
-                        interviewBtn.style.background = 'linear-gradient(45deg, #dc3545, #c82333)';
-                    }
-                } else {
-                    recordingStatusIndicator.className = 'status-indicator status-inactive';
-                    recordingStatusIndicator.nextSibling.textContent = 'Recording: Inactive';
-                    recordingStatus.className = 'status-indicator status-inactive';
-                    
-                    if (isRecording) {
-                        isRecording = false;
-                        interviewBtn.textContent = '🎥 Start Interview';
-                        interviewBtn.style.background = 'linear-gradient(45deg, #4ecdc4, #44a08d)';
-                    }
-                }
-
-            } catch (error) {
-                console.error('Status update failed:', error);
-            }
-        }
-
-        // Handle enter key in text area
-        document.getElementById('speechText').addEventListener('keydown', function(event) {
-            if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                sendSpeech();
-            }
+            });
         });
     </script>
 </body>
