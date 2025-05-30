@@ -256,10 +256,72 @@ sudo systemctl start camera-server.service
 - **Timestamp Naming**: All files named with date/time stamps
 - **Error Handling**: Graceful error handling and user feedback
 
-## Security Note
+## Admin page
 
-This server runs on all interfaces (0.0.0.0) for external access. For production use, consider:
-- Adding authentication
-- Using HTTPS
-- Restricting network access
-- Regular security updates
+🤖 ARI Robot Control
+
+Text input area for sending speech to ARI robot
+"Send to ARI" button that calls the TTS API
+4 motion control buttons:
+
+Wave Hello
+Shake Left
+Nod Yes
+Shake No
+
+
+Real-time feedback for all ARI commands
+
+📹 Camera Preview
+
+Live camera feed preview (selfie camera)
+Start/Stop preview controls
+Helps ensure camera is positioned correctly
+Preview uses streaming endpoint for real-time view
+
+📸 Quick Actions
+
+Take Selfie button
+Start/Stop Interview recording toggle
+Real-time recording status indicators
+
+🧭 Navigation
+
+Quick access to Home and Gallery pages
+Maintains navigation to all existing features
+
+⚡ System Status
+
+Real-time status indicators for:
+
+Camera availability
+Preview status
+Recording status
+
+
+Auto-updates every 2 seconds
+
+Mobile-Optimized Design:
+
+Responsive layout sized for mobile devices
+Touch-friendly buttons with hover effects
+Modern gradient design with clear visual hierarchy
+Alert system for user feedback
+Grid layouts that adapt to screen size
+
+Updated Flask App Features:
+New API Endpoints:
+
+/api/admin/ari_speak - Send text to ARI TTS
+/api/admin/ari_motion - Send motion commands to ARI
+/api/admin/start_preview - Start camera preview
+/api/admin/stop_preview - Stop camera preview
+/admin/camera_feed - Live camera streaming endpoint
+
+ARI Integration:
+
+Configurable ARI robot URL (ARI_BASE_URL)
+Error handling for robot communication
+Support for different languages (defaulting to en_GB)
+
+
