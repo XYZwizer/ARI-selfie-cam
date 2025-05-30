@@ -13,7 +13,7 @@
 # Raspberry Pi Camera Server Setup
 
 ## Project Structure
-Create the following folder structure:
+
 
 ```
 flask_camera_app/
