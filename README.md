@@ -258,75 +258,78 @@ sudo systemctl start camera-server.service
 
 ## Admin page
 
-# Access the Admin Page:
+Perfect! I've created a comprehensive admin control page for your Flask camera app with ARI robot integration. Here's what I've added:
 
-Navigate to http://your-pi-ip:5000/admin
-The page is optimized for mobile devices but works on desktop too
+## Key Features of the Admin Page:
 
-🤖 ARI Robot Control
+### 🤖 **ARI Robot Control**
+- Text input area for sending speech to ARI robot
+- "Send to ARI" button that calls the TTS API
+- 4 motion control buttons:
+  - Wave Hello
+  - Shake Left  
+  - Nod Yes
+  - Shake No
+- Real-time feedback for all ARI commands
 
-Text input area for sending speech to ARI robot
-"Send to ARI" button that calls the TTS API
-4 motion control buttons:
+### 📹 **Camera Preview**
+- Live camera feed preview (selfie camera)
+- Start/Stop preview controls
+- Helps ensure camera is positioned correctly
+- Preview uses streaming endpoint for real-time view
 
-Wave Hello
-Shake Left
-Nod Yes
-Shake No
+### 📸 **Quick Actions**
+- Take Selfie button
+- Start/Stop Interview recording toggle
+- Real-time recording status indicators
 
+### 🧭 **Navigation** 
+- Quick access to Home and Gallery pages
+- Maintains navigation to all existing features
 
-Real-time feedback for all ARI commands
+### ⚡ **System Status**
+- Real-time status indicators for:
+  - Camera availability
+  - Preview status
+  - Recording status
+- Auto-updates every 2 seconds
 
-📹 Camera Preview
+## Mobile-Optimized Design:
+- Responsive layout sized for mobile devices
+- Touch-friendly buttons with hover effects
+- Modern gradient design with clear visual hierarchy
+- Alert system for user feedback
+- Grid layouts that adapt to screen size
 
-Live camera feed preview (selfie camera)
-Start/Stop preview controls
-Helps ensure camera is positioned correctly
-Preview uses streaming endpoint for real-time view
+## Updated Flask App Features:
 
-📸 Quick Actions
+### New API Endpoints:
+- `/api/admin/ari_speak` - Send text to ARI TTS
+- `/api/admin/ari_motion` - Send motion commands to ARI
+- `/api/admin/start_preview` - Start camera preview
+- `/api/admin/stop_preview` - Stop camera preview
+- `/admin/camera_feed` - Live camera streaming endpoint
 
-Take Selfie button
-Start/Stop Interview recording toggle
-Real-time recording status indicators
+### ARI Integration:
+- Configurable ARI robot URL (`ARI_BASE_URL`)
+- Error handling for robot communication
+- Support for different languages (defaulting to en_GB)
 
-🧭 Navigation
+## To Use This:
 
-Quick access to Home and Gallery pages
-Maintains navigation to all existing features
+1. **Update your ARI robot URL** - Change `ARI_BASE_URL` in the Flask app to match your robot's IP
+2. **Install additional dependency** - Add `requests` to your requirements.txt:
+   ```
+   requests>=2.31.0
+   ```
 
-⚡ System Status
+## Access the Admin Page:
+- Navigate to `http://your-pi-ip:5000/admin`
+- The page is optimized for mobile devices but works on desktop too
 
-Real-time status indicators for:
+## Motion Names:
+The motion names (wave_hello, shake_left, nod_yes, shake_no) are examples. You can easily modify these in the HTML template to match your ARI robot's actual motion file names.
 
-Camera availability
-Preview status
-Recording status
-
-
-Auto-updates every 2 seconds
-
-Mobile-Optimized Design:
-
-Responsive layout sized for mobile devices
-Touch-friendly buttons with hover effects
-Modern gradient design with clear visual hierarchy
-Alert system for user feedback
-Grid layouts that adapt to screen size
-
-Updated Flask App Features:
-New API Endpoints:
-
-/api/admin/ari_speak - Send text to ARI TTS
-/api/admin/ari_motion - Send motion commands to ARI
-/api/admin/start_preview - Start camera preview
-/api/admin/stop_preview - Stop camera preview
-/admin/camera_feed - Live camera streaming endpoint
-
-ARI Integration:
-
-Configurable ARI robot URL (ARI_BASE_URL)
-Error handling for robot communication
-Support for different languages (defaulting to en_GB)
+The admin page provides complete control over both camera functions and ARI robot interactions in one convenient mobile-friendly interface!
 
 
