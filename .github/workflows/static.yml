@@ -1,9 +1,14 @@
-name: Deploy Static to GitHub Pages
+name: Deploy static content to GitHub Pages
 
 on:
   push:
-    branches: [ main ]  # or 'master' or whatever your default is
+    branches: [ main ]  # Or "master", depending on your repo
   workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   deploy:
@@ -16,11 +21,10 @@ jobs:
     - name: Setup Pages
       uses: actions/configure-pages@v4
 
-    - name: Upload static site to GitHub Pages
+    - name: Upload static content
       uses: actions/upload-pages-artifact@v2
       with:
-        path: './static'  # Change this if your static folder is different
+        path: './static'  # Change to your actual static folder
 
     - name: Deploy to GitHub Pages
-      id: deployment
       uses: actions/deploy-pages@v2
