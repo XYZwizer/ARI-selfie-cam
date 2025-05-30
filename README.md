@@ -258,6 +258,11 @@ sudo systemctl start camera-server.service
 
 ## Admin page
 
+# Access the Admin Page:
+
+Navigate to http://your-pi-ip:5000/admin
+The page is optimized for mobile devices but works on desktop too
+
 🤖 ARI Robot Control
 
 Text input area for sending speech to ARI robot
