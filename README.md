@@ -7,7 +7,7 @@
 
 ## Admin control from phone - will update with controller as as ARI's webcomander
 
-<img src="https://github.com/user-attachments/assets/21aa0166-592f-4600-b705-4c1de918ebad" width="200" >
+<img src="https://github.com/user-attachments/assets/2f8af5b3-6e88-4798-91b9-ceba7a0893d7" width="200" >
 
 
 # Raspberry Pi Camera Server Setup
