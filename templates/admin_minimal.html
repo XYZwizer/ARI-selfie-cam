@@ -1,4 +1,11 @@
-<!DOCTYPE html>
+// Allow Enter key to send command
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('textInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendCommand();
+                }
+            });
+        });<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -20,73 +27,52 @@
         }
 
         .container {
-            max-width: 420px;
+            max-width: 380px;
             margin: 0 auto;
             background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 15px; /* Reduced from 20px */
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); 
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
             color: #333;
         }
-        .flash-screen.hidden {
-            display: none !important;
-        }
-
-        .remote-preview img {
-            max-width: 100%;
-            height: auto;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #667eea;
-        }
 
         .header {
             text-align: center;
-            margin-bottom: 20px; /* Reduced from 25px */
-            padding-bottom: 10px; /* Reduced from 15px */
+            margin-bottom: 15px;
+            padding-bottom: 10px;
             border-bottom: 2px solid #667eea;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 20px;
+            margin-bottom: 3px;
         }
 
         .header p {
             color: #666;
-            font-size: 14px;
+            font-size: 12px;
         }
 
         .section {
-            margin-bottom: 20px; /* Reduced from 25px */
+            margin-bottom: 15px;
             background: #f8f9fa;
-            border-radius: 15px;
-            padding: 15px; /* Reduced from 20px */
+            border-radius: 10px;
+            padding: 12px;
             border: 2px solid #e9ecef;
         }
 
         .section-title {
             color: #667eea;
-            font-size: 18px;
+            font-size: 14px;
             font-weight: bold;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .section-title::before {
-            content: '';
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #667eea;
+            margin-bottom: 10px;
         }
 
         /* Joystick Control Section */
         .joystick-container {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
+            justify-content: center;
         }
 
         .joystick-area {
@@ -158,17 +144,17 @@
         .motion-buttons {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 8px;
+            margin-top: 10px;
         }
 
         .motion-btn {
-            padding: 12px;
+            padding: 8px;
             background: linear-gradient(45deg, #28a745, #20c997);
             color: white;
             border: none;
-            border-radius: 10px;
-            font-size: 14px;
+            border-radius: 6px;
+            font-size: 12px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s;
@@ -179,7 +165,51 @@
             box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
         }
 
-        /* Camera Preview Section */
+        /* Diagnostics Section */
+        .diagnostics-list {
+            max-height: 120px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+
+        .diagnostic-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 6px;
+            margin-bottom: 3px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .diagnostic-item.error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 3px solid #dc3545;
+        }
+
+        .diagnostic-item.warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 3px solid #ffc107;
+        }
+
+        .diagnostic-item.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 3px solid #17a2b8;
+        }
+
+        .diagnostic-item.success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 3px solid #28a745;
+        }
+
+        .diagnostic-time {
+            font-size: 10px;
+            opacity: 0.7;
+        }
         .camera-preview {
             text-align: center;
             margin-bottom: 15px;
@@ -241,14 +271,14 @@
         .nav-buttons {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            gap: 8px;
         }
 
         .nav-btn {
-            padding: 15px;
+            padding: 10px;
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
+            border-radius: 8px;
+            font-size: 12px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s;
@@ -325,13 +355,13 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🤖 ARI Robot Control</h1>
-            <p>Advanced camera & motion control interface</p>
+            <h1>ARI Robot Control</h1>
+            <p>Control Interface</p>
         </div>
 
         <!-- Joystick Control Section -->
         <div class="section">
-            <div class="section-title">🕹️ Movement Control</div>
+            <div class="section-title">Movement Control</div>
             <div class="joystick-container">
                 <div class="joystick-area" id="joystickArea">
                     <div class="joystick-knob" id="joystickKnob"></div>
@@ -339,23 +369,53 @@
             </div>
         </div>
 
-        <!-- ARI Control Section -->
+        <!-- Voice Command Section -->
         <div class="section">
-            <div class="section-title">💬 Voice Command</div>
-            <input type="text" class="text-input" id="textInput" placeholder="Enter command for ARI...">
-            <button class="send-btn" onclick="sendCommand()">Send to ARI</button>
+            <div class="section-title">Voice Command</div>
+            <input type="text" class="text-input" id="textInput" placeholder="Enter command...">
+            <button class="send-btn" onclick="sendCommand()">Send Command</button>
             
             <div class="motion-buttons">
-                <button class="motion-btn" onclick="performMotion('wave')">👋 Wave</button>
-                <button class="motion-btn" onclick="performMotion('nod')">👤 Nod</button>
-                <button class="motion-btn" onclick="performMotion('look_around')">👀 Look Around</button>
-                <button class="motion-btn" onclick="performMotion('gesture')">✋ Gesture</button>
+                <button class="motion-btn" onclick="performMotion('wave')">Wave</button>
+                <button class="motion-btn" onclick="performMotion('nod')">Nod</button>
+                <button class="motion-btn" onclick="performMotion('look_around')">Look Around</button>
+                <button class="motion-btn" onclick="performMotion('gesture')">Gesture</button>
+            </div>
+        </div>
+
+        <!-- Navigation Section -->
+        <div class="section">
+            <div class="section-title">Navigation</div>
+            <div class="nav-buttons">
+                <button class="nav-btn selfie" onclick="navigateTo('selfie')">Selfie Mode</button>
+                <button class="nav-btn interview" onclick="navigateTo('interview')">Interview</button>
+                <button class="nav-btn gallery" onclick="navigateTo('gallery')">Gallery</button>
+                <button class="nav-btn home" onclick="navigateTo('home')">Home</button>
+            </div>
+        </div>
+
+        <!-- Diagnostics Section -->
+        <div class="section">
+            <div class="section-title">System Status</div>
+            <div class="diagnostics-list" id="diagnosticsList">
+                <div class="diagnostic-item success">
+                    <span>Robot connection established</span>
+                    <span class="diagnostic-time">12:34:56</span>
+                </div>
+                <div class="diagnostic-item info">
+                    <span>Camera feed active</span>
+                    <span class="diagnostic-time">12:34:45</span>
+                </div>
+                <div class="diagnostic-item warning">
+                    <span>Battery level: 15%</span>
+                    <span class="diagnostic-time">12:30:12</span>
+                </div>
             </div>
         </div>
 
         <!-- Camera Preview Section -->
         <div class="section">
-            <div class="section-title">📹 Camera Preview</div>
+            <div class="section-title">Camera Preview</div>
             <div class="camera-preview">
                 <div class="preview-container">
                     <div class="preview-placeholder" id="previewPlaceholder">
@@ -364,35 +424,9 @@
                     <img class="preview-feed" id="previewFeed" style="display: none;">
                 </div>
                 <div class="preview-controls">
-                    <button class="preview-btn start-preview" onclick="startPreview()">Start Preview</button>
-                    <button class="preview-btn stop-preview" onclick="stopPreview()">Stop Preview</button>
+                    <button class="preview-btn start-preview" onclick="startPreview()">Start</button>
+                    <button class="preview-btn stop-preview" onclick="stopPreview()">Stop</button>
                 </div>
-            </div>
-        </div>
-
-        <!-- Remote Selfie Section -->
-        <div class="section">
-            <div class="section-title">📸 Remote Selfie</div>
-            <button class="nav-btn selfie" id="remote-selfie-btn" onclick="startRemoteSelfie()">📷 Take a Selfie</button>
-            <div id="remote-status" style="margin-top: 15px; font-weight: bold;"></div>
-            <div id="remote-preview" class="hidden" style="margin-top: 15px;">
-                <img id="remote-image" style="width: 100%; border-radius: 10px;" alt="Remote Selfie">
-            </div>
-        </div>
-
-        <!-- Hidden elements for flash effect -->
-        <div id="flash-screen" class="flash-screen hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold;">
-            <img id="flash-image" style="max-width: 90%; max-height: 90%; object-fit: contain;" alt="Selfie Flash">
-        </div>
-        <!-- Navigation Section -->
-        <div class="section">
-            <div class="section-title">🧭 Navigation</div>
-            <div class="nav-buttons">
-                <button class="nav-btn selfie" onclick="startRemoteSelfie()">📸 Remote Selfie</button>
-
-                <button class="nav-btn interview" onclick="navigateTo('interview')">🎤 Interview</button>
-                <button class="nav-btn gallery" onclick="navigateTo('gallery')">🖼️ Gallery</button>
-                <button class="nav-btn home" onclick="navigateTo('home')">🏠 Home</button>
             </div>
         </div>
     </div>
@@ -562,89 +596,35 @@
         function navigateTo(page) {
             window.location.href = `/${page}`;
         }
-        // Replace the selfie button onclick
-            function startRemoteSelfie() {
-        const button = document.getElementById('remote-selfie-btn');
-        const status = document.getElementById('remote-status');
-        const flashScreen = document.getElementById('flash-screen');
         
-        button.disabled = true;
-        status.textContent = '';
-        
-        // Show countdown in button
-        let count = 6;
-        button.textContent = 'Ready?';
-        
-        const countdownInterval = setInterval(() => {
-            if (count > 1) {
-                count--;
-                button.textContent = count.toString();
-            } else {
-                clearInterval(countdownInterval);
-                button.textContent = 'Taking selfie...';
-                
-                setTimeout(() => {
-                    takeRemoteSelfie();
-                }, 1000);
+        // Add diagnostic functionality
+        function addDiagnostic(type, message) {
+            const diagnosticsList = document.getElementById('diagnosticsList');
+            const time = new Date().toLocaleTimeString();
+            
+            const item = document.createElement('div');
+            item.className = `diagnostic-item ${type}`;
+            item.innerHTML = `
+                <span>${message}</span>
+                <span class="diagnostic-time">${time}</span>
+            `;
+            
+            diagnosticsList.insertBefore(item, diagnosticsList.firstChild);
+            
+            // Keep only last 10 items
+            while (diagnosticsList.children.length > 10) {
+                diagnosticsList.removeChild(diagnosticsList.lastChild);
             }
-        }, 1000);
-    }
-
-    async function takeRemoteSelfie() {
-        const button = document.getElementById('remote-selfie-btn');
-        const status = document.getElementById('remote-status');
-        const previewContainer = document.getElementById('remote-preview');
-        const previewImage = document.getElementById('remote-image');
-        const flashScreen = document.getElementById('flash-screen');
-        const flashImage = document.getElementById('flash-image');
-        
-        try {
-            const response = await fetch('/api/take_selfie', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                // Show the selfie in flash screen
-                flashImage.src = `/gallery/${result.filename}`;
-                flashScreen.classList.remove('hidden');
-                
-                // Hide flash after 2 seconds and show in preview
-                setTimeout(() => {
-                    flashScreen.classList.add('hidden');
-                    status.textContent = 'Remote selfie captured successfully!';
-                    previewImage.src = `/gallery/${result.filename}`;
-                    previewContainer.classList.remove('hidden');
-                    
-                    // Reset button
-                    button.disabled = false;
-                    button.textContent = '📷 Take a Selfie';
-                }, 2000);
-                
-            } else {
-                status.textContent = `Error: ${result.error}`;
-                button.disabled = false;
-                button.textContent = '📷 Take a Selfie';
-            }
-            
-        } catch (error) {
-            status.textContent = `Error: ${error.message}`;
-            button.disabled = false;
-            button.textContent = '📷 Take a Selfie';
         }
-    }
-        // Allow Enter key to send command
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('textInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    sendCommand();
-                }
-            });
-        });
+        
+        // Example diagnostic updates
+        function updateDiagnostics() {
+            // This would be called from your Flask server or WebSocket
+            // addDiagnostic('error', 'Connection timeout');
+            // addDiagnostic('warning', 'Low battery: 12%');
+            // addDiagnostic('success', 'Motion completed');
+            // addDiagnostic('info', 'Camera streaming started');
+        }
     </script>
 </body>
 </html>
