@@ -12,8 +12,8 @@ import signal
 import requests
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, url_for, Response
-from picamera2 import Picamera2
-from picamera2.encoders import H264Encoder
+# from picamera2 import Picamera2
+# from picamera2.encoders import H264Encoder
 import subprocess
 import glob
 import io
@@ -26,9 +26,11 @@ app = Flask(__name__)
 GALLERY_PATH = 'static/gallery'
 INTERVIEW_DURATION = 300  # 5 minutes max
 ARI_BASE_URL = 'http://ari-Xc'  # Default ARI robot URL - change as needed
-DROIDCAM_IP = '172.20.24.0'
+# DROIDCAM_IP = '172.20.24.0'
+DROIDCAM_IP = '192.168.61.92'
+
 DROIDCAM_PORT = 4747
-DROIDCAM_URL = f'http://{DROIDCAM_IP}:{DROIDCAM_PORT}/video'
+DROIDCAM_URL = "http://192.168.0.126:4747/video"
 
 # Ensure gallery directory exists
 os.makedirs(GALLERY_PATH, exist_ok=True)
@@ -111,14 +113,34 @@ class CameraManager:
             print(f"Error stopping DroidCam preview: {e}")
     
     def capture_droidcam_image(self, filepath):
-        """Capture a still image from DroidCam"""
+        """Capture a still image from DroidCam video stream (MJPEG) by extracting the first JPEG frame."""
         try:
-            # Fresh request for still capture
-            response = requests.get(f'http://{DROIDCAM_IP}:{DROIDCAM_PORT}/photo.jpg', timeout=10)
+            response = requests.get(DROIDCAM_URL, timeout=10, stream=True)
             if response.status_code == 200:
-                with open(filepath, 'wb') as f:
-                    f.write(response.content)
-                return True
+                buffer = b''
+                jpeg_start = None
+                for chunk in response.iter_content(chunk_size=4096):
+                    if not chunk:
+                        break
+                    buffer += chunk
+                    # Look for JPEG start marker
+                    if jpeg_start is None:
+                        jpeg_start = buffer.find(b'\xff\xd8')
+                        if jpeg_start == -1:
+                            buffer = buffer[-10:]
+                            continue
+                    # Look for JPEG end marker
+                    jpeg_end = buffer.find(b'\xff\xd9', jpeg_start)
+                    if jpeg_end != -1:
+                        jpeg_data = buffer[jpeg_start:jpeg_end + 2]
+                        with open(filepath, 'wb') as f:
+                            f.write(jpeg_data)
+                        response.close()
+                        print(f"Captured JPEG frame: {len(jpeg_data)} bytes")
+                        return True
+                response.close()
+                print("No complete JPEG frame found in stream")
+                return False
             else:
                 print(f"Failed to capture DroidCam image: {response.status_code}")
                 return False
@@ -226,43 +248,82 @@ def selfie_stream():
         try:
             response = requests.get(DROIDCAM_URL, timeout=10, stream=True)
             if response.status_code == 200:
-                # DroidCam usually provides MJPEG stream
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        yield chunk
+                print("DroidCam stream connected successfully")
+                
+                # Check the content type from DroidCam
+                content_type = response.headers.get('content-type', '')
+                print(f"DroidCam content-type: {content_type}")
+                
+                # If it's already MJPEG, forward it directly
+                if 'multipart' in content_type.lower():
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            yield chunk
+                else:
+                    # If it's raw video data, we need to process it frame by frame
+                    buffer = b''
+                    frame_count = 0
+                    
+                    for chunk in response.iter_content(chunk_size=4096):
+                        if not chunk:
+                            break
+                            
+                        buffer += chunk
+                        
+                        # Look for JPEG frames
+                        while True:
+                            jpeg_start = buffer.find(b'\xff\xd8')
+                            if jpeg_start == -1:
+                                break
+                                
+                            jpeg_end = buffer.find(b'\xff\xd9', jpeg_start)
+                            if jpeg_end == -1:
+                                # Incomplete frame, wait for more data
+                                buffer = buffer[jpeg_start:]
+                                break
+                            
+                            # Extract complete JPEG frame
+                            jpeg_frame = buffer[jpeg_start:jpeg_end + 2]
+                            
+                            # Yield frame in MJPEG format
+                            yield (b'--frame\r\n'
+                                   b'Content-Type: image/jpeg\r\n'
+                                   b'Content-Length: ' + str(len(jpeg_frame)).encode() + b'\r\n'
+                                   b'\r\n' + jpeg_frame + b'\r\n')
+                            
+                            frame_count += 1
+                            if frame_count % 30 == 0:  # Log every 30 frames
+                                print(f"Streamed {frame_count} frames")
+                            
+                            # Remove processed frame from buffer
+                            buffer = buffer[jpeg_end + 2:]
             else:
                 print(f"DroidCam connection failed: {response.status_code}")
+                yield b'--frame\r\n' b'Content-Type: text/plain\r\n\r\n' b'Camera connection failed\r\n'
+                
         except Exception as e:
             print(f"Error streaming DroidCam: {e}")
+            yield b'--frame\r\n' b'Content-Type: text/plain\r\n\r\n' b'Stream error\r\n'
     
-    # Fixed MIME type for MJPEG stream
+    # Return the stream with proper MJPEG headers
     return Response(generate(), 
-                   mimetype='multipart/x-mixed-replace; boundary=--BoundaryString',
-                   headers={'Cache-Control': 'no-cache'})
+                   mimetype='multipart/x-mixed-replace; boundary=frame')
 
-# 2. Enhanced selfie start with better error handling
+# Simplify the start_selfie function since stream should work immediately
 @app.route('/api/start_selfie', methods=['POST'])
 def start_selfie():
-    """Start selfie process with DroidCam preview activation"""
+    """Start selfie process - just test DroidCam availability"""
     try:
-        # Test DroidCam connection first
-        test_response = requests.get(f'http://{DROIDCAM_IP}:{DROIDCAM_PORT}/', timeout=5)
+        # Quick test of DroidCam availability
+        test_response = requests.get(DROIDCAM_URL, timeout=3)
         if test_response.status_code != 200:
             return jsonify({'error': f'DroidCam not accessible at {DROIDCAM_IP}:{DROIDCAM_PORT}'}), 500
         
-        # Test video stream specifically
-        stream_response = requests.get(DROIDCAM_URL, timeout=5, stream=True)
-        if stream_response.status_code != 200:
-            return jsonify({'error': 'DroidCam video stream not available'}), 500
-        
-        # Close test connection
-        stream_response.close()
-        
-        camera_manager.droidcam_active = True
+        test_response.close()
         
         return jsonify({
             'success': True,
-            'message': 'Selfie preview started',
+            'message': 'DroidCam is available',
             'stream_url': '/api/selfie_stream'
         })
         
@@ -271,53 +332,43 @@ def start_selfie():
     except requests.exceptions.ConnectionError:
         return jsonify({'error': f'Cannot connect to DroidCam at {DROIDCAM_IP}:{DROIDCAM_PORT}'}), 500
     except Exception as e:
-        return jsonify({'error': f'Error starting selfie: {str(e)}'}), 500
+        return jsonify({'error': f'Error checking DroidCam: {str(e)}'}), 500
 
-# 3. Enhanced photo capture with better error handling
+# Update take_selfie to use the new capture method
 @app.route('/api/take_selfie', methods=['POST'])
 def take_selfie():
-    """Capture selfie after countdown"""
+    """Capture selfie from DroidCam stream or accept base64 image from browser."""
     try:
-        # Generate timestamp filename
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'selfie_{timestamp}.jpg'
-        filepath = os.path.join(GALLERY_PATH, filename)
-        
-        # Try multiple DroidCam photo endpoints
-        photo_urls = [
-            f'http://{DROIDCAM_IP}:{DROIDCAM_PORT}/photo.jpg',
-            f'http://{DROIDCAM_IP}:{DROIDCAM_PORT}/shot.jpg',
-            f'http://{DROIDCAM_IP}:{DROIDCAM_PORT}/cam/1/frame.jpg'
-        ]
-        
-        captured = False
-        for photo_url in photo_urls:
-            try:
-                response = requests.get(photo_url, timeout=10)
-                if response.status_code == 200 and len(response.content) > 1000:  # Valid image
-                    with open(filepath, 'wb') as f:
-                        f.write(response.content)
-                    captured = True
-                    print(f"Photo captured using: {photo_url}")
-                    break
-            except Exception as e:
-                print(f"Failed to capture from {photo_url}: {e}")
-                continue
-        
-        if not captured:
-            return jsonify({'error': 'Failed to capture photo from DroidCam'}), 500
-        
-        # Stop preview
-        camera_manager.droidcam_active = False
-        
-        return jsonify({
-            'success': True, 
-            'filename': filename,
-            'message': 'Selfie captured successfully!'
-        })
-        
+        data = request.get_json(silent=True)
+        if data and 'image' in data:
+            # Handle base64 image from browser
+            import base64
+            header, encoded = data['image'].split(',', 1) if ',' in data['image'] else ('', data['image'])
+            img_bytes = base64.b64decode(encoded)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f'selfie_{timestamp}.jpg'
+            filepath = os.path.join(GALLERY_PATH, filename)
+            with open(filepath, 'wb') as f:
+                f.write(img_bytes)
+            return jsonify({
+                'success': True,
+                'filename': filename,
+                'message': 'Selfie captured successfully!'
+            })
+        else:
+            # Fallback: try to capture from DroidCam stream (legacy)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f'selfie_{timestamp}.jpg'
+            filepath = os.path.join(GALLERY_PATH, filename)
+            if camera_manager.capture_droidcam_image(filepath):
+                return jsonify({
+                    'success': True, 
+                    'filename': filename,
+                    'message': 'Selfie captured successfully!'
+                })
+            else:
+                return jsonify({'error': 'Failed to capture frame from DroidCam'}), 500
     except Exception as e:
-        camera_manager.droidcam_active = False
         return jsonify({'error': f'Error taking selfie: {str(e)}'}), 500
 
 # Admin API endpoints

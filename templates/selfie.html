@@ -47,36 +47,6 @@
             background: #000;
         }
         
-        .countdown-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 10;
-        }
-        
-        .countdown-text {
-            font-size: 8em;
-            font-weight: bold;
-            color: #fff;
-            text-shadow: 
-                0 0 20px rgba(255, 255, 255, 0.8),
-                0 0 40px rgba(255, 255, 255, 0.6),
-                0 0 60px rgba(255, 255, 255, 0.4);
-            animation: pulse 1s ease-in-out;
-        }
-        
-        @keyframes pulse {
-            0% { transform: scale(0.8); opacity: 0.5; }
-            50% { transform: scale(1.2); opacity: 1; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        
         .controls {
             margin: 30px 0;
         }
@@ -110,43 +80,6 @@
             background: linear-gradient(45deg, #4ecdc4, #44a08d);
         }
         
-        .status {
-            margin: 20px 0;
-            padding: 15px;
-            border-radius: 10px;
-            min-height: 20px;
-        }
-        
-        .status.success {
-            background: rgba(76, 175, 80, 0.2);
-            border: 2px solid #4caf50;
-        }
-        
-        .status.error {
-            background: rgba(244, 67, 54, 0.2);
-            border: 2px solid #f44336;
-        }
-        
-        .status.info {
-            background: rgba(33, 150, 243, 0.2);
-            border: 2px solid #2196f3;
-        }
-        
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid #ffffff;
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spin 1s ease-in-out infinite;
-            margin-right: 10px;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
         .back-btn {
             position: absolute;
             top: 20px;
@@ -165,6 +98,12 @@
             background: rgba(255, 255, 255, 0.3);
             transform: translateY(-1px);
         }
+
+        .status {
+            margin: 20px 0;
+            font-size: 1.1em;
+            opacity: 0.8;
+        }
     </style>
 </head>
 <body>
@@ -173,157 +112,72 @@
     <div class="container">
         <h1>📸 Take a Selfie</h1>
         
-        <div class="camera-container">
-            <img id="videoFeed" src="" alt="Camera feed will appear here">
-            <div id="countdownOverlay" class="countdown-overlay">
-                <div id="countdownText" class="countdown-text">3</div>
-            </div>
+        <div class="camera-container" style="position:relative;">
+            <img id="droidcam-stream" src="http://192.168.0.126:4747/video" alt="DroidCam Stream" crossorigin="anonymous" style="max-width:100%; border-radius:10px;">
+            <canvas id="snapshot-canvas" style="display:none;"></canvas>
+            <div id="countdown-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:5em;font-weight:bold;color:white;text-shadow:2px 2px 8px #000;background:rgba(0,0,0,0.3);z-index:2;display:none;"></div>
         </div>
         
-        <div class="controls">
-            <button id="startBtn" class="btn" onclick="startSelfie()">Start Camera</button>
-            <button id="captureBtn" class="btn" onclick="capturePhoto()" disabled>Take Photo</button>
-        </div>
-        
-        <div id="status" class="status" style="display: none;"></div>
+        <div class="status" id="status">Camera starting...</div>
     </div>
 
     <script>
-        let cameraStarted = false;
-        let capturing = false;
-        
-        function showStatus(message, type = 'info') {
-            const statusDiv = document.getElementById('status');
-            statusDiv.textContent = message;
-            statusDiv.className = `status ${type}`;
-            statusDiv.style.display = 'block';
-            
-            if (type === 'success' || type === 'error') {
-                setTimeout(() => {
-                    statusDiv.style.display = 'none';
-                }, 5000);
+    function showCountdown(seconds, onComplete) {
+        const overlay = document.getElementById('countdown-overlay');
+        overlay.style.display = 'flex';
+        let count = seconds;
+        overlay.textContent = count;
+        const interval = setInterval(() => {
+            count--;
+            if (count > 0) {
+                overlay.textContent = count;
+            } else {
+                clearInterval(interval);
+                overlay.style.display = 'none';
+                onComplete();
             }
-        }
-        
-        function showLoading(message) {
-            const statusDiv = document.getElementById('status');
-            statusDiv.innerHTML = `<span class="loading"></span>${message}`;
-            statusDiv.className = 'status info';
-            statusDiv.style.display = 'block';
-        }
-        
-        async function startSelfie() {
-            const startBtn = document.getElementById('startBtn');
-            const captureBtn = document.getElementById('captureBtn');
-            const videoFeed = document.getElementById('videoFeed');
-            
-            if (cameraStarted) return;
-            
-            showLoading('Starting camera...');
-            startBtn.disabled = true;
-            
-            try {
-                const response = await fetch('/api/start_selfie', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Start video feed
-                    videoFeed.src = '/api/selfie_stream?' + new Date().getTime();
-                    videoFeed.onerror = function() {
-                        showStatus('Error loading camera feed. Check DroidCam connection.', 'error');
-                        resetCamera();
-                    };
-                    
-                    cameraStarted = true;
-                    captureBtn.disabled = false;
-                    startBtn.textContent = 'Camera Active';
-                    showStatus('Camera started! Position yourself and click "Take Photo"', 'success');
-                } else {
-                    showStatus(data.error || 'Failed to start camera', 'error');
-                    startBtn.disabled = false;
-                }
-            } catch (error) {
-                console.error('Error starting selfie:', error);
-                showStatus('Connection error. Check if DroidCam is running.', 'error');
-                startBtn.disabled = false;
+        }, 1000);
+    }
+
+    function capturePhoto() {
+        const img = document.getElementById('droidcam-stream');
+        const canvas = document.getElementById('snapshot-canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
+        const dataURL = canvas.toDataURL('image/jpeg');
+        document.getElementById('status').textContent = 'Uploading photo...';
+        // Send to backend
+        fetch('/api/take_selfie', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: dataURL })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('status').textContent = 'Photo captured! Redirecting to gallery...';
+                setTimeout(() => { window.location.href = '/gallery'; }, 1000);
+            } else {
+                document.getElementById('status').textContent = 'Error: ' + (data.error || 'Failed to capture photo');
             }
-        }
-        
-        async function capturePhoto() {
-            if (capturing || !cameraStarted) return;
-            
-            capturing = true;
-            const captureBtn = document.getElementById('captureBtn');
-            const countdownOverlay = document.getElementById('countdownOverlay');
-            const countdownText = document.getElementById('countdownText');
-            
-            captureBtn.disabled = true;
-            
-            // Start countdown
-            countdownOverlay.style.display = 'flex';
-            
-            for (let i = 3; i > 0; i--) {
-                countdownText.textContent = i;
-                countdownText.style.animation = 'none';
-                setTimeout(() => {
-                    countdownText.style.animation = 'pulse 1s ease-in-out';
-                }, 10);
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-            
-            // Show "SMILE!"
-            countdownText.textContent = 'SMILE!';
-            countdownText.style.animation = 'pulse 1s ease-in-out';
-            
-            try {
-                showLoading('Capturing photo...');
-                
-                const response = await fetch('/api/take_selfie', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showStatus(`Photo saved as ${data.filename}!`, 'success');
-                    setTimeout(() => {
-                        window.location.href = '/gallery';
-                    }, 2000);
-                } else {
-                    showStatus(data.error || 'Failed to capture photo', 'error');
-                }
-            } catch (error) {
-                console.error('Error capturing photo:', error);
-                showStatus('Error capturing photo', 'error');
-            }
-            
-            // Hide countdown
-            countdownOverlay.style.display = 'none';
-            capturing = false;
-            captureBtn.disabled = false;
-        }
-        
-        function resetCamera() {
-            cameraStarted = false;
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('startBtn').textContent = 'Start Camera';
-            document.getElementById('captureBtn').disabled = true;
-            document.getElementById('videoFeed').src = '';
-        }
-        
-        // Auto-start camera when page loads
-        window.addEventListener('load', function() {
-            setTimeout(startSelfie, 1000);
+        })
+        .catch(() => {
+            document.getElementById('status').textContent = 'Error uploading photo';
         });
+    }
+
+    document.getElementById('droidcam-stream').onload = function() {
+        document.getElementById('status').textContent = 'Camera ready! Smile for the selfie...';
+        showCountdown(5, capturePhoto);
+    };
+    document.getElementById('droidcam-stream').onerror = function() {
+        document.getElementById('status').textContent = 'Camera connection failed. Check DroidCam connection.';
+    };
+    window.addEventListener('beforeunload', function() {
+        document.getElementById('droidcam-stream').src = '';
+    });
     </script>
 </body>
 </html>
