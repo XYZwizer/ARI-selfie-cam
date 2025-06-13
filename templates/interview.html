@@ -10,15 +10,7 @@
     
     <div class="question-container">
         <div class="question" id="interview-question">
-            "Nice outfit, tell me about it"
-        </div>
-    </div>
-    
-    <div class="video-container" id="video-container">
-        <img id="video-stream" class="video-stream" src="" alt="Camera will appear here">
-        <div id="recording-status" class="hidden" style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px;">
-            <span class="recording-indicator"></span>
-            <span>Recording...</span>
+            <!-- The prompt will be loaded here -->
         </div>
     </div>
     
@@ -40,12 +32,32 @@
 <script>
 let recording = false;
 
+// Fetch and display the current interview prompt
+async function loadPrompt() {
+    try {
+        const response = await fetch('/api/interview_prompt');
+        const data = await response.json();
+        document.getElementById('interview-question').textContent = data.prompt || '';
+    } catch (e) {
+        document.getElementById('interview-question').textContent = 'Prompt unavailable';
+    }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    // Reset the interview trigger so /waiting doesn't immediately redirect again
+    fetch('/api/interview_trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reset: true })
+    });
+    loadPrompt();
+    setInterval(loadPrompt, 2000); // Poll every 2 seconds
+});
+
 async function startInterview() {
     const startBtn = document.getElementById('start-btn');
     const stopBtn = document.getElementById('stop-btn');
     const status = document.getElementById('status');
-    const videoStream = document.getElementById('video-stream');
-    const recordingStatus = document.getElementById('recording-status');
     
     try {
         status.textContent = 'Starting interview...';
@@ -67,10 +79,6 @@ async function startInterview() {
             // Switch interface
             startBtn.classList.add('hidden');
             stopBtn.classList.remove('hidden');
-            recordingStatus.classList.remove('hidden');
-            
-            // Start showing the camera stream
-            videoStream.src = '/api/interview_stream';
             
             showMessage('Recording started!', 'success');
             
@@ -91,8 +99,6 @@ async function stopInterview() {
     const startBtn = document.getElementById('start-btn');
     const stopBtn = document.getElementById('stop-btn');
     const status = document.getElementById('status');
-    const videoStream = document.getElementById('video-stream');
-    const recordingStatus = document.getElementById('recording-status');
     
     try {
         status.textContent = 'Stopping interview...';
@@ -115,16 +121,12 @@ async function stopInterview() {
             stopBtn.classList.add('hidden');
             startBtn.classList.remove('hidden');
             startBtn.disabled = false;
-            recordingStatus.classList.add('hidden');
-            
-            // Stop video stream
-            videoStream.src = '';
             
             showMessage('Interview saved successfully!', 'success');
             
-            // Auto-redirect to gallery after 3 seconds
+            // Auto-redirect to waiting page after 3 seconds
             setTimeout(() => {
-                window.location.href = '/gallery';
+                window.location.href = '/waiting';
             }, 3000);
             
         } else {
@@ -148,14 +150,6 @@ window.addEventListener('beforeunload', function(e) {
         return e.returnValue;
     }
 });
-
-// Handle stream errors
-document.getElementById('video-stream').onerror = function() {
-    if (recording) {
-        document.getElementById('status').textContent = 'Camera stream error during recording.';
-        showMessage('Camera stream error', 'error');
-    }
-};
 </script>
 {% endblock %}
     

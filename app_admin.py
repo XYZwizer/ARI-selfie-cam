@@ -202,7 +202,7 @@ def interview_page():
 
 @app.route('/gallery')
 def gallery_page():
-    """Gallery page showing all captured media"""
+    """Public gallery page showing all captured media"""
     # Get all files from gallery directory
     image_files = glob.glob(os.path.join(GALLERY_PATH, '*.jpg'))
     video_files = glob.glob(os.path.join(GALLERY_PATH, '*.mp4'))
@@ -214,7 +214,23 @@ def gallery_page():
     # Extract just the filename for template
     files = [os.path.basename(f) for f in all_files]
     
-    return render_template('gallery.html', files=files)
+    return render_template('public-gallery.html', files=files)
+
+@app.route('/admin-gallery')
+def admin_gallery_page():
+    """Admin gallery page showing all captured media with management options"""
+    # Get all files from gallery directory
+    image_files = glob.glob(os.path.join(GALLERY_PATH, '*.jpg'))
+    video_files = glob.glob(os.path.join(GALLERY_PATH, '*.mp4'))
+    
+    # Sort by modification time (newest first)
+    all_files = image_files + video_files
+    all_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+    
+    # Extract just the filename for template
+    files = [os.path.basename(f) for f in all_files]
+    
+    return render_template('admin-gallery.html', files=files)
 
 # Admin API endpoints
 @app.route('/api/admin/ari_speak', methods=['POST'])

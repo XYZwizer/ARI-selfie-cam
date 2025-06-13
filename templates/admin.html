@@ -24,7 +24,7 @@
             margin: 0 auto;
             background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
-            padding: 15px; /* Reduced from 20px */
+            padding: 10px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); 
             color: #333;
         }
@@ -38,8 +38,8 @@
         }
         .header {
             text-align: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
             border-bottom: 2px solid #667eea;
         }
 
@@ -56,18 +56,18 @@
         }
 
         .section {
-            margin-bottom: 20px; /* Reduced from 25px */
+            margin-bottom: 15px;
             background: #f8f9fa;
             border-radius: 15px;
-            padding: 15px; /* Reduced from 20px */
+            padding: 10px;
             border: 2px solid #e9ecef;
         }
 
         .section-title {
             color: #667eea;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -124,12 +124,11 @@
         /* ARI Control Section */
         .text-input {
             width: 100%;
-            padding: 12px;
+            padding: 8px;
             border: 2px solid #ddd;
             border-radius: 10px;
-            font-size: 16px;
-            margin-bottom: 15px;
-            transition: border-color 0.3s;
+            font-size: 14px;
+            margin-bottom: 10px;
         }
 
         .text-input:focus {
@@ -139,16 +138,16 @@
 
         .send-btn {
             width: 100%;
-            padding: 12px;
+            padding: 8px;
             background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
             border: none;
             border-radius: 10px;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
             cursor: pointer;
             transition: transform 0.2s;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
 
         .send-btn:hover {
@@ -241,39 +240,30 @@
         .nav-buttons {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            gap: 8px;
         }
 
         .nav-btn {
-            padding: 15px;
+            padding: 12px;
             border: none;
             border-radius: 12px;
-            font-size: 16px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            font-size: 14px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s;
-            color: white;
-        }
-
-        .nav-btn.selfie {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
-        }
-
-        .nav-btn.interview {
-            background: linear-gradient(45deg, #4ecdc4, #44a08d);
-        }
-
-        .nav-btn.gallery {
-            background: linear-gradient(45deg, #feca57, #ff9ff3);
-        }
-
-        .nav-btn.home {
-            background: linear-gradient(45deg, #5f27cd, #341f97);
+            text-decoration: none;
+            text-align: center;
         }
 
         .nav-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .gallery-btn {
+            background: linear-gradient(45deg, #28a745, #20c997);
         }
 
         /* Status indicators */
@@ -320,331 +310,439 @@
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
+
+        .soundboard-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .soundboard-inputs {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .soundboard-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .soundboard-row .text-input {
+            flex: 1;
+            margin-bottom: 0;
+            padding: 8px;
+        }
+
+        .soundboard-row .send-btn {
+            width: auto;
+            min-width: 70px;
+            margin-bottom: 0;
+            padding: 8px;
+        }
+
+        .gesture-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .gesture-btn {
+            padding: 12px;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .gesture-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .volume-control {
+            margin-bottom: 15px;
+        }
+
+        .volume-slider {
+            width: 100%;
+            height: 8px;
+            -webkit-appearance: none;
+            background: #ddd;
+            border-radius: 4px;
+            outline: none;
+            margin: 8px 0;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #667eea;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .volume-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+        }
+
+        .battery-status {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .battery-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .battery-item {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .battery-label {
+            font-weight: bold;
+            color: #667eea;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🤖 ARI Robot Control</h1>
-            <p>Advanced camera & motion control interface</p>
+            <p>Advanced camera & interview control</p>
         </div>
 
-        <!-- Joystick Control Section -->
+        <!-- Volume and Battery Section -->
         <div class="section">
-            <div class="section-title">🕹️ Movement Control</div>
-            <div class="joystick-container">
-                <div class="joystick-area" id="joystickArea">
-                    <div class="joystick-knob" id="joystickKnob"></div>
-                </div>
+            <div class="section-title">🔊 Volume & Battery</div>
+            <div class="volume-control">
+                <label for="volume">Volume: <span id="volumeValue">50</span>%</label>
+                <input type="range" id="volume" min="0" max="100" value="50" class="volume-slider">
             </div>
-        </div>
-
-        <!-- ARI Control Section -->
-        <div class="section">
-            <div class="section-title">💬 Voice Command</div>
-            <input type="text" class="text-input" id="textInput" placeholder="Enter command for ARI...">
-            <button class="send-btn" onclick="sendCommand()">Send to ARI</button>
-            
-            <div class="motion-buttons">
-                <button class="motion-btn" onclick="performMotion('wave')">👋 Wave</button>
-                <button class="motion-btn" onclick="performMotion('nod')">👤 Nod</button>
-                <button class="motion-btn" onclick="performMotion('look_around')">👀 Look Around</button>
-                <button class="motion-btn" onclick="performMotion('gesture')">✋ Gesture</button>
-            </div>
-        </div>
-
-        <!-- Camera Preview Section -->
-        <div class="section">
-            <div class="section-title">📹 Camera Preview</div>
-            <div class="camera-preview">
-                <div class="preview-container">
-                    <div class="preview-placeholder" id="previewPlaceholder">
-                        Camera feed will appear here
+            <div class="battery-status">
+                <div class="battery-info">
+                    <div class="battery-item">
+                        <span class="battery-label">🔋 Charge:</span>
+                        <span id="batteryCharge">--</span>%
                     </div>
-                    <img class="preview-feed" id="previewFeed" style="display: none;">
-                </div>
-                <div class="preview-controls">
-                    <button class="preview-btn start-preview" onclick="startPreview()">Start Preview</button>
-                    <button class="preview-btn stop-preview" onclick="stopPreview()">Stop Preview</button>
+                    <div class="battery-item">
+                        <span class="battery-label">🔌 Connected:</span>
+                        <span id="batteryConnected">--</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Remote Selfie Section -->
+        <!-- Soundboard Section -->
         <div class="section">
-            <div class="section-title">📸 Remote Selfie</div>
-            <button class="nav-btn selfie" id="remote-selfie-btn" onclick="startRemoteSelfie()">📷 Take a Selfie</button>
-            <div id="remote-status" style="margin-top: 15px; font-weight: bold;"></div>
-            <div id="remote-preview" class="hidden" style="margin-top: 15px;">
-                <img id="remote-image" style="width: 100%; border-radius: 10px;" alt="Remote Selfie">
+            <div class="section-title">🔊 Soundboard</div>
+            <div class="soundboard-inputs">
+                <div class="soundboard-row">
+                    <input type="text" class="text-input sound-input" id="sound1" placeholder="Sound 1" value="Sound 1">
+                    <button class="send-btn" onclick="sendAriTTS(document.getElementById('sound1').value)">Send</button>
+                </div>
+                <div class="soundboard-row">
+                    <input type="text" class="text-input sound-input" id="sound2" placeholder="Sound 2" value="Sound 2">
+                    <button class="send-btn" onclick="sendAriTTS(document.getElementById('sound2').value)">Send</button>
+                </div>
+                <div class="soundboard-row">
+                    <input type="text" class="text-input sound-input" id="sound3" placeholder="Sound 3" value="Sound 3">
+                    <button class="send-btn" onclick="sendAriTTS(document.getElementById('sound3').value)">Send</button>
+                </div>
+                <div class="soundboard-row">
+                    <input type="text" class="text-input sound-input" id="sound4" placeholder="Sound 4" value="Sound 4">
+                    <button class="send-btn" onclick="sendAriTTS(document.getElementById('sound4').value)">Send</button>
+                </div>
+                <div class="soundboard-row">
+                    <input type="text" class="text-input sound-input" id="sound5" placeholder="Sound 5" value="Sound 5">
+                    <button class="send-btn" onclick="sendAriTTS(document.getElementById('sound5').value)">Send</button>
+                </div>
+                <div class="soundboard-row">
+                    <input type="text" class="text-input sound-input" id="sound6" placeholder="Sound 6" value="Sound 6">
+                    <button class="send-btn" onclick="sendAriTTS(document.getElementById('sound6').value)">Send</button>
+                </div>
             </div>
         </div>
 
-        <!-- Hidden elements for flash effect -->
-        <div id="flash-screen" class="flash-screen hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold;">
-            <img id="flash-image" style="max-width: 90%; max-height: 90%; object-fit: contain;" alt="Selfie Flash">
+        <!-- Gesture Section -->
+        <div class="section">
+            <div class="section-title">🤖 Gestures</div>
+            <div class="gesture-buttons">
+                <button class="gesture-btn" onclick="sendAriMotion('wave')">👋 Wave</button>
+                <button class="gesture-btn" onclick="sendAriMotion('shake_right')">🤝 Shake Right</button>
+                <button class="gesture-btn" onclick="sendAriMotion('nod')">👍 Nod</button>
+                <button class="gesture-btn" onclick="sendAriMotion('show_left')">👈 Show Left</button>
+                <button class="gesture-btn" onclick="sendAriMotion('custom1')">✨ Custom 1</button>
+                <button class="gesture-btn" onclick="sendAriMotion('custom2')">✨ Custom 2</button>
+            </div>
         </div>
+
+        <!-- Interview Section -->
+        <div class="section">
+            <div class="section-title">🎤 Interview Prompt</div>
+            <input type="text" class="text-input" id="interviewInput" placeholder="Enter interview prompt...">
+            <button class="send-btn" onclick="sendInterviewPrompt()">Send to Interview</button>
+        </div>
+
+        <!-- Interview Control Section -->
+        <div class="section">
+            <div class="section-title">🎬 Interview Control</div>
+            <div class="interview-controls">
+                <button id="startInterviewBtn" class="send-btn" onclick="startInterview()">Start Interview</button>
+                <button id="stopInterviewBtn" class="send-btn" style="display: none; background: linear-gradient(45deg, #dc3545, #c82333);" onclick="stopInterview()">Stop Interview</button>
+            </div>
+            <div id="interviewStatus" style="margin-top: 10px; font-size: 13px; color: #666;"></div>
+        </div>
+
         <!-- Navigation Section -->
         <div class="section">
             <div class="section-title">🧭 Navigation</div>
             <div class="nav-buttons">
-                <button class="nav-btn selfie" onclick="startRemoteSelfie()">📸 Remote Selfie</button>
-
-                <button class="nav-btn interview" onclick="navigateTo('interview')">🎤 Interview</button>
-                <button class="nav-btn gallery" onclick="navigateTo('gallery')">🖼️ Gallery</button>
-                <button class="nav-btn home" onclick="navigateTo('home')">🏠 Home</button>
+                <a href="/" class="nav-btn">🏠 Home</a>
+                <a href="/admin-gallery" class="nav-btn gallery-btn">🖼️ Admin Gallery</a>
             </div>
         </div>
     </div>
 
     <script>
-        // Joystick functionality
-        class VirtualJoystick {
-            constructor(container, knob) {
-                this.container = container;
-                this.knob = knob;
-                this.isDragging = false;
-                this.centerX = 0;
-                this.centerY = 0;
-                this.currentX = 0;
-                this.currentY = 0;
-                this.maxDistance = 40; // Maximum distance from center
-                
-                this.init();
-            }
-            
-            init() {
-                // Calculate center position
-                const rect = this.container.getBoundingClientRect();
-                this.centerX = rect.width / 2;
-                this.centerY = rect.height / 2;
-                
-                // Event listeners
-                this.knob.addEventListener('mousedown', this.startDrag.bind(this));
-                this.knob.addEventListener('touchstart', this.startDrag.bind(this));
-                
-                document.addEventListener('mousemove', this.drag.bind(this));
-                document.addEventListener('touchmove', this.drag.bind(this));
-                
-                document.addEventListener('mouseup', this.stopDrag.bind(this));
-                document.addEventListener('touchend', this.stopDrag.bind(this));
-                
-                // Container click to move knob
-                this.container.addEventListener('click', this.moveToClick.bind(this));
-                
-                // Prevent context menu
-                this.container.addEventListener('contextmenu', e => e.preventDefault());
-            }
-            
-            startDrag(e) {
-                this.isDragging = true;
-                this.knob.style.transition = 'none';
-                e.preventDefault();
-            }
-            
-            drag(e) {
-                if (!this.isDragging) return;
-                
-                const rect = this.container.getBoundingClientRect();
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                
-                const x = clientX - rect.left - this.centerX;
-                const y = clientY - rect.top - this.centerY;
-                
-                this.updatePosition(x, y);
-                e.preventDefault();
-            }
-            
-            stopDrag() {
-                if (!this.isDragging) return;
-                this.isDragging = false;
-                this.knob.style.transition = 'all 0.2s ease-out';
-                this.returnToCenter();
-            }
-            
-            moveToClick(e) {
-                if (this.isDragging) return;
-                
-                const rect = this.container.getBoundingClientRect();
-                const x = e.clientX - rect.left - this.centerX;
-                const y = e.clientY - rect.top - this.centerY;
-                
-                this.knob.style.transition = 'all 0.2s ease-out';
-                this.updatePosition(x, y);
-                
-                // Return to center after a short delay
-                setTimeout(() => this.returnToCenter(), 200);
-            }
-            
-            updatePosition(x, y) {
-                const distance = Math.sqrt(x * x + y * y);
-                
-                if (distance > this.maxDistance) {
-                    const angle = Math.atan2(y, x);
-                    x = Math.cos(angle) * this.maxDistance;
-                    y = Math.sin(angle) * this.maxDistance;
-                }
-                
-                this.currentX = x;
-                this.currentY = y;
-                
-                this.knob.style.transform = `translate(${x - 20}px, ${y - 20}px)`;
-                
-                // Send joystick data to server (removed value display)
-                const normalizedX = x / this.maxDistance;
-                const normalizedY = -y / this.maxDistance; // Invert Y for intuitive up/down
-                
-                this.sendJoystickData(normalizedX, normalizedY);
-            }
-            
-            returnToCenter() {
-                this.currentX = 0;
-                this.currentY = 0;
-                this.knob.style.transform = 'translate(-50%, -50%)';
-                
-                // Send stop command
-                this.sendJoystickData(0, 0);
-            }
-            
-            sendJoystickData(x, y) {
-                // Send data to your Flask server
-                fetch('/api/joystick', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        x: x,
-                        y: y,
-                        timestamp: Date.now()
-                    })
-                }).catch(err => console.log('Joystick data send failed:', err));
-            }
-        }
-        
-        // Initialize joystick when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            const joystickArea = document.getElementById('joystickArea');
-            const joystickKnob = document.getElementById('joystickKnob');
-            new VirtualJoystick(joystickArea, joystickKnob);
+    function sendAriTTS(text) {
+        fetch('/api/admin/ari_speak', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: text })
         });
-        
-        // Existing functions (you can adapt these to your Flask routes)
-        function sendCommand() {
-            const text = document.getElementById('textInput').value;
-            if (text.trim()) {
-                fetch('/api/command', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ command: text })
-                });
-                document.getElementById('textInput').value = '';
-            }
-        }
-        
-        function performMotion(motionType) {
-            fetch('/api/motion', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ motion: motionType })
-            });
-        }
-        
-        function startPreview() {
-            fetch('/api/camera/start', { method: 'POST' });
-        }
-        
-        function stopPreview() {
-            fetch('/api/camera/stop', { method: 'POST' });
-        }
-        
-        function navigateTo(page) {
-            window.location.href = `/${page}`;
-        }
-        // Replace the selfie button onclick
-            function startRemoteSelfie() {
-        const button = document.getElementById('remote-selfie-btn');
-        const status = document.getElementById('remote-status');
-        const flashScreen = document.getElementById('flash-screen');
-        
-        button.disabled = true;
-        status.textContent = '';
-        
-        // Show countdown in button
-        let count = 6;
-        button.textContent = 'Ready?';
-        
-        const countdownInterval = setInterval(() => {
-            if (count > 1) {
-                count--;
-                button.textContent = count.toString();
-            } else {
-                clearInterval(countdownInterval);
-                button.textContent = 'Taking selfie...';
-                
-                setTimeout(() => {
-                    takeRemoteSelfie();
-                }, 1000);
-            }
-        }, 1000);
     }
 
-    async function takeRemoteSelfie() {
-        const button = document.getElementById('remote-selfie-btn');
-        const status = document.getElementById('remote-status');
-        const previewContainer = document.getElementById('remote-preview');
-        const previewImage = document.getElementById('remote-image');
-        const flashScreen = document.getElementById('flash-screen');
-        const flashImage = document.getElementById('flash-image');
+    // Add keyboard event listeners for all sound inputs
+    document.querySelectorAll('.sound-input').forEach(input => {
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendAriTTS(this.value);
+            }
+        });
+    });
+
+    function sendInterviewPrompt() {
+        const input = document.getElementById('interviewInput');
+        const text = input.value.trim();
+        if (!text) return;
+        // Send to ARI TTS
+        sendAriTTS(text);
+        // Send to interview prompt endpoint
+        fetch('/api/interview_prompt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: text })
+        });
+        // Trigger the interview page to open
+        fetch('/api/interview_trigger', {
+            method: 'POST'
+        });
+        input.value = '';
+    }
+
+    // Add keyboard event listener for interview input
+    document.getElementById('interviewInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendInterviewPrompt();
+        }
+    });
+
+    // Save soundboard settings to localStorage
+    function saveSoundboardSettings() {
+        const sounds = {};
+        document.querySelectorAll('.sound-input').forEach(input => {
+            sounds[input.id] = input.value;
+        });
+        localStorage.setItem('soundboardSettings', JSON.stringify(sounds));
+    }
+
+    // Load soundboard settings from localStorage
+    function loadSoundboardSettings() {
+        const savedSettings = localStorage.getItem('soundboardSettings');
+        if (savedSettings) {
+            const sounds = JSON.parse(savedSettings);
+            Object.entries(sounds).forEach(([id, value]) => {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.value = value;
+                }
+            });
+        }
+    }
+
+    // Save settings when inputs change
+    document.querySelectorAll('.sound-input').forEach(input => {
+        input.addEventListener('change', saveSoundboardSettings);
+    });
+
+    // Load settings when page loads
+    document.addEventListener('DOMContentLoaded', loadSoundboardSettings);
+
+    function sendAriMotion(motion) {
+        fetch('/api/admin/ari_motion', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ motion: motion })
+        });
+    }
+
+    // Volume control
+    const volumeSlider = document.getElementById('volume');
+    const volumeValue = document.getElementById('volumeValue');
+    
+    // Get current volume
+    function getCurrentVolume() {
+        fetch('http://ari-0c/parameter/volume')
+            .then(response => response.json())
+            .then(data => {
+                const currentVolume = data.value;
+                volumeSlider.value = currentVolume;
+                volumeValue.textContent = currentVolume;
+            })
+            .catch(error => console.error('Error fetching volume:', error));
+    }
+
+    // Set volume
+    function setVolume(value) {
+        fetch('http://ari-0c/parameter/volume', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ value: parseInt(value) })
+        })
+        .catch(error => console.error('Error setting volume:', error));
+    }
+    
+    volumeSlider.addEventListener('input', function() {
+        volumeValue.textContent = this.value;
+    });
+
+    volumeSlider.addEventListener('change', function() {
+        setVolume(this.value);
+    });
+
+    // Get initial volume when page loads
+    getCurrentVolume();
+
+    // Battery status
+    function updateBatteryStatus() {
+        fetch('http://ari-Xc/topic/power_diagnostic')
+            .then(response => response.json())
+            .then(data => {
+                const power = data.msg;
+                document.getElementById('batteryCharge').textContent = Math.round(power.charge);
+                document.getElementById('batteryConnected').textContent = power.is_connected ? 'Yes' : 'No';
+            })
+            .catch(error => console.error('Error fetching battery status:', error));
+    }
+
+    // Update battery status every 30 seconds
+    updateBatteryStatus();
+    setInterval(updateBatteryStatus, 30000);
+
+    // Interview control functions
+    async function startInterview() {
+        const startBtn = document.getElementById('startInterviewBtn');
+        const stopBtn = document.getElementById('stopInterviewBtn');
+        const status = document.getElementById('interviewStatus');
         
         try {
-            const response = await fetch('/api/take_selfie', {
+            status.textContent = 'Starting interview...';
+            startBtn.disabled = true;
+            
+            const response = await fetch('/api/start_interview', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'Content-Type': 'application/json' }
             });
             
             const result = await response.json();
             
             if (result.success) {
-                // Show the selfie in flash screen
-                flashImage.src = `/gallery/${result.filename}`;
-                flashScreen.classList.remove('hidden');
-                
-                // Hide flash after 2 seconds and show in preview
-                setTimeout(() => {
-                    flashScreen.classList.add('hidden');
-                    status.textContent = 'Remote selfie captured successfully!';
-                    previewImage.src = `/gallery/${result.filename}`;
-                    previewContainer.classList.remove('hidden');
-                    
-                    // Reset button
-                    button.disabled = false;
-                    button.textContent = '📷 Take a Selfie';
-                }, 2000);
-                
+                status.textContent = 'Interview recording started!';
+                startBtn.style.display = 'none';
+                stopBtn.style.display = 'block';
             } else {
                 status.textContent = `Error: ${result.error}`;
-                button.disabled = false;
-                button.textContent = '📷 Take a Selfie';
+                startBtn.disabled = false;
             }
-            
         } catch (error) {
             status.textContent = `Error: ${error.message}`;
-            button.disabled = false;
-            button.textContent = '📷 Take a Selfie';
+            startBtn.disabled = false;
         }
     }
-        // Allow Enter key to send command
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('textInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    sendCommand();
-                }
+
+    async function stopInterview() {
+        const startBtn = document.getElementById('startInterviewBtn');
+        const stopBtn = document.getElementById('stopInterviewBtn');
+        const status = document.getElementById('interviewStatus');
+        
+        try {
+            status.textContent = 'Stopping interview...';
+            stopBtn.disabled = true;
+            
+            const response = await fetch('/api/stop_interview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
             });
-        });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                status.textContent = 'Interview completed and saved to gallery!';
+                stopBtn.style.display = 'none';
+                startBtn.style.display = 'block';
+                startBtn.disabled = false;
+            } else {
+                status.textContent = `Error: ${result.error}`;
+                stopBtn.disabled = false;
+            }
+        } catch (error) {
+            status.textContent = `Error: ${error.message}`;
+            stopBtn.disabled = false;
+        }
+    }
+
+    // Check interview status on page load
+    async function checkInterviewStatus() {
+        try {
+            const response = await fetch('/api/status');
+            const data = await response.json();
+            
+            const startBtn = document.getElementById('startInterviewBtn');
+            const stopBtn = document.getElementById('stopInterviewBtn');
+            
+            if (data.recording) {
+                startBtn.style.display = 'none';
+                stopBtn.style.display = 'block';
+                document.getElementById('interviewStatus').textContent = 'Interview recording in progress...';
+            } else {
+                startBtn.style.display = 'block';
+                stopBtn.style.display = 'none';
+                document.getElementById('interviewStatus').textContent = '';
+            }
+        } catch (error) {
+            console.error('Error checking interview status:', error);
+        }
+    }
+
+    // Check status when page loads
+    document.addEventListener('DOMContentLoaded', checkInterviewStatus);
     </script>
 </body>
 </html>

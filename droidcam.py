@@ -17,7 +17,7 @@ from flask import Flask, render_template, request, jsonify, send_from_directory,
 import subprocess
 import glob
 import io
-import base64
+import base64   
 from PIL import Image
 
 app = Flask(__name__)
@@ -25,15 +25,21 @@ app = Flask(__name__)
 # Configuration
 GALLERY_PATH = 'static/gallery'
 INTERVIEW_DURATION = 300  # 5 minutes max
-ARI_BASE_URL = 'http://ari-Xc'  # Default ARI robot URL - change as needed
+ARI_BASE_URL = 'http://ari-20c'  # Default ARI robot URL - change as needed
 # DROIDCAM_IP = '172.20.24.0'
-DROIDCAM_IP = '192.168.61.92'
+DROIDCAM_IP = '192.168.0.126'
 
 DROIDCAM_PORT = 4747
 DROIDCAM_URL = "http://192.168.0.126:4747/video"
 
 # Ensure gallery directory exists
 os.makedirs(GALLERY_PATH, exist_ok=True)
+
+# Global variable to store the current interview prompt
+current_interview_prompt = "Nice outfit, tell me about it"
+
+# New global variable for interview trigger
+interview_trigger = False
 
 class CameraManager:
     def __init__(self):
@@ -224,9 +230,9 @@ def interview_page():
     """Interview recording page"""
     return render_template('interview.html')
 
-@app.route('/gallery')
-def gallery_page():
-    """Gallery page showing all captured media"""
+@app.route('/admin-gallery')
+def admin_gallery_page():
+    """Admin Gallery page showing all captured media with delete options"""
     # Get all files from gallery directory
     image_files = glob.glob(os.path.join(GALLERY_PATH, '*.jpg'))
     video_files = glob.glob(os.path.join(GALLERY_PATH, '*.mp4'))
@@ -238,7 +244,23 @@ def gallery_page():
     # Extract just the filename for template
     files = [os.path.basename(f) for f in all_files]
     
-    return render_template('gallery.html', files=files)
+    return render_template('admin-gallery.html', files=files)
+
+@app.route('/gallery')
+def gallery_page():
+    """Public Gallery page showing all captured media (no delete)"""
+    # Get all files from gallery directory
+    image_files = glob.glob(os.path.join(GALLERY_PATH, '*.jpg'))
+    video_files = glob.glob(os.path.join(GALLERY_PATH, '*.mp4'))
+    
+    # Sort by modification time (newest first)
+    all_files = image_files + video_files
+    all_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+    
+    # Extract just the filename for template
+    files = [os.path.basename(f) for f in all_files]
+    
+    return render_template('public-gallery.html', files=files)
 
 # DroidCam selfie endpoints
 @app.route('/api/selfie_stream')
@@ -339,6 +361,8 @@ def start_selfie():
 def take_selfie():
     """Capture selfie from DroidCam stream or accept base64 image from browser."""
     try:
+        # Send 'selfie' motion to ARI before taking the photo
+        send_ari_motion('selfie')
         data = request.get_json(silent=True)
         if data and 'image' in data:
             # Handle base64 image from browser
@@ -350,6 +374,8 @@ def take_selfie():
             filepath = os.path.join(GALLERY_PATH, filename)
             with open(filepath, 'wb') as f:
                 f.write(img_bytes)
+            # Send 'natural' motion to ARI after photo is taken
+            send_ari_motion('natural')
             return jsonify({
                 'success': True,
                 'filename': filename,
@@ -361,14 +387,18 @@ def take_selfie():
             filename = f'selfie_{timestamp}.jpg'
             filepath = os.path.join(GALLERY_PATH, filename)
             if camera_manager.capture_droidcam_image(filepath):
+                # Send 'natural' motion to ARI after photo is taken
+                send_ari_motion('natural')
                 return jsonify({
                     'success': True, 
                     'filename': filename,
                     'message': 'Selfie captured successfully!'
                 })
             else:
+                send_ari_motion('natural')
                 return jsonify({'error': 'Failed to capture frame from DroidCam'}), 500
     except Exception as e:
+        send_ari_motion('natural')
         return jsonify({'error': f'Error taking selfie: {str(e)}'}), 500
 
 # Admin API endpoints
@@ -667,6 +697,38 @@ def get_status():
         'droidcam_active': camera_manager.droidcam_active,
         'preview_active': camera_manager.preview_active
     })
+
+@app.route('/api/interview_prompt', methods=['GET', 'POST'])
+def interview_prompt():
+    global current_interview_prompt
+    if request.method == 'POST':
+        data = request.get_json()
+        prompt = data.get('prompt', '').strip()
+        if prompt:
+            current_interview_prompt = prompt
+            return jsonify({'success': True, 'prompt': current_interview_prompt})
+        else:
+            return jsonify({'error': 'No prompt provided'}), 400
+    else:  # GET
+        return jsonify({'prompt': current_interview_prompt})
+
+@app.route('/api/interview_trigger', methods=['GET', 'POST'])
+def interview_trigger_route():
+    global interview_trigger
+    if request.method == 'POST':
+        data = request.get_json(silent=True) or {}
+        if data.get('reset'):
+            interview_trigger = False
+            return jsonify({'success': True, 'reset': True})
+        else:
+            interview_trigger = True
+            return jsonify({'success': True})
+    else:
+        return jsonify({'trigger': interview_trigger})
+
+@app.route('/waiting')
+def waiting_page():
+    return render_template('waiting.html')
 
 @app.errorhandler(404)
 def not_found(error):

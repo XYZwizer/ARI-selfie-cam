@@ -1,17 +1,23 @@
 {% extends "base.html" %}
 
-{% block title %}Gallery{% endblock %}
+{% block title %}Admin Gallery{% endblock %}
 
 {% block content %}
-<a href="/" class="button back-button">🏠 Home</a>
+<a href="/admin" class="button back-button">🏠 Admin</a>
 
 <div class="container">
-    <h1>🖼️ Gallery</h1>
+    <h1>🖼️ Admin Gallery</h1>
     
     {% if files %}
         <p style="margin-bottom: 30px; opacity: 0.9;">
             {{ files|length }} file(s) in your gallery
         </p>
+        
+        <div style="margin-bottom: 20px;">
+            <button onclick="downloadAllFiles()" class="button primary">
+                💾 Download All Files
+            </button>
+        </div>
         
         <div class="gallery-grid">
             {% for file in files %}
@@ -47,7 +53,6 @@
                 🗑️ Clear All Files
             </button>
         </div>
-        
     {% else %}
         <div style="margin-top: 50px;">
             <p style="font-size: 1.3em; opacity: 0.7; margin-bottom: 30px;">
@@ -56,15 +61,6 @@
             <p style="opacity: 0.6; margin-bottom: 40px;">
                 Take some selfies or record interviews to see them here!
             </p>
-            
-            <div>
-                <a href="/selfie" class="button primary">
-                    📸 Take a Selfie
-                </a>
-                <a href="/interview" class="button primary">
-                    🎤 Start Interview
-                </a>
-            </div>
         </div>
     {% endif %}
 </div>
@@ -80,8 +76,10 @@
 </div>
 {% endblock %}
 
-{% block extra_js %}
+{% block scripts %}
 <script>
+const galleryFiles = {{ files|tojson }};
+
 function openLightbox(src, type) {
     if (type === 'image') {
         const lightbox = document.getElementById('lightbox');
@@ -109,77 +107,71 @@ document.getElementById('lightbox').addEventListener('click', function(e) {
     }
 });
 
-async function deleteFile(filename) {
-    if (!confirm(`Are you sure you want to delete "${filename}"?`)) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/api/delete_file/${filename}`, {
+function downloadAllFiles() {
+    galleryFiles.forEach(file => {
+        const link = document.createElement('a');
+        link.href = `/gallery/${file}`;
+        link.download = file;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+}
+
+function deleteFile(filename) {
+    if (confirm('Are you sure you want to delete this file?')) {
+        fetch(`/api/delete_file/${filename}`, {
             method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error deleting file: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error deleting file: ' + error);
         });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            showMessage('File deleted successfully', 'success');
-            // Reload page to update gallery
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
-        } else {
-            showMessage(result.error, 'error');
-        }
-        
-    } catch (error) {
-        showMessage('Failed to delete file', 'error');
     }
 }
 
-async function clearGallery() {
-    if (!confirm('Are you sure you want to delete ALL files in the gallery? This cannot be undone!')) {
-        return;
-    }
-    
-    const galleryItems = document.querySelectorAll('.gallery-item');
-    const filenames = Array.from(galleryItems).map(item => {
-        const img = item.querySelector('img');
-        const video = item.querySelector('video source');
-        if (img) {
-            return img.src.split('/').pop();
-        } else if (video) {
-            return video.src.split('/').pop();
-        }
-    });
-    
-    let deletedCount = 0;
-    let errorCount = 0;
-    
-    for (const filename of filenames) {
-        try {
-            const response = await fetch(`/api/delete_file/${filename}`, {
+function clearGallery() {
+    if (confirm('Are you sure you want to delete ALL files? This cannot be undone!')) {
+        let deletedCount = 0;
+        let errorCount = 0;
+        
+        galleryFiles.forEach(file => {
+            fetch(`/api/delete_file/${file}`, {
                 method: 'DELETE'
-            });
-            
-            if (response.ok) {
-                deletedCount++;
-            } else {
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    deletedCount++;
+                } else {
+                    errorCount++;
+                }
+                
+                if (deletedCount + errorCount === galleryFiles.length) {
+                    if (errorCount === 0) {
+                        location.reload();
+                    } else {
+                        alert(`Deleted ${deletedCount} files, but encountered ${errorCount} errors.`);
+                        location.reload();
+                    }
+                }
+            })
+            .catch(error => {
                 errorCount++;
-            }
-        } catch (error) {
-            errorCount++;
-        }
+                if (deletedCount + errorCount === galleryFiles.length) {
+                    alert(`Deleted ${deletedCount} files, but encountered ${errorCount} errors.`);
+                    location.reload();
+                }
+            });
+        });
     }
-    
-    if (errorCount === 0) {
-        showMessage(`All ${deletedCount} files deleted successfully`, 'success');
-    } else {
-        showMessage(`${deletedCount} files deleted, ${errorCount} errors`, 'error');
-    }
-    
-    setTimeout(() => {
-        window.location.reload();
-    }, 2000);
 }
 </script>
 {% endblock %}

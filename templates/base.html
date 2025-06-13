@@ -154,8 +154,9 @@
         
         .gallery-item-title {
             font-size: 0.9em;
-            margin-bottom: 10px;
-            opacity: 0.8;
+            color: #666;
+            margin-bottom: 8px;
+            text-align: center;
         }
         
         .question-container {
@@ -216,6 +217,34 @@
             .flash-screen {
                 font-size: 2em;
             }
+        }
+        
+        /* Lightbox styles */
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .lightbox-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        .lightbox-content img {
+            max-width: 100%;
+            max-height: 90vh;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
     </style>
     {% block extra_css %}{% endblock %}

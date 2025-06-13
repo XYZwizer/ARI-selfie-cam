@@ -113,7 +113,10 @@
         <h1>📸 Take a Selfie</h1>
         
         <div class="camera-container" style="position:relative;">
-            <img id="droidcam-stream" src="http://192.168.0.126:4747/video" alt="DroidCam Stream" crossorigin="anonymous" style="max-width:100%; border-radius:10px;">
+            <img id="droidcam-stream" src="http://192.168.0.126:4747/video" alt="DroidCam Stream" crossorigin="anonymous" style="max-width:100%; border-radius:10px; object-fit: cover; object-position: center top;">
+            <!-- Make sure to move bitmap.png to the static directory: static/bitmap.png -->
+            <img id="bitmap-overlay" src="/static/bitmap.png" alt="Bitmap Overlay" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:3; border-radius:10px;">
+            <img id="selfie-preview" src="" alt="Selfie Preview" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:4; border-radius:10px;">
             <canvas id="snapshot-canvas" style="display:none;"></canvas>
             <div id="countdown-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:5em;font-weight:bold;color:white;text-shadow:2px 2px 8px #000;background:rgba(0,0,0,0.3);z-index:2;display:none;"></div>
         </div>
@@ -122,6 +125,14 @@
     </div>
 
     <script>
+    function sendAriSpeak(text) {
+        fetch('/api/admin/ari_speak', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: text })
+        });
+    }
+
     function showCountdown(seconds, onComplete) {
         const overlay = document.getElementById('countdown-overlay');
         overlay.style.display = 'flex';
@@ -131,6 +142,9 @@
             count--;
             if (count > 0) {
                 overlay.textContent = count;
+                if (count === 2) {
+                    sendAriSpeak('smile');
+                }
             } else {
                 clearInterval(interval);
                 overlay.style.display = 'none';
@@ -139,13 +153,35 @@
         }, 1000);
     }
 
+    function showBitmapOverlay(duration, callback) {
+        const bitmap = document.getElementById('bitmap-overlay');
+        bitmap.style.display = 'block';
+        setTimeout(() => {
+            bitmap.style.display = 'none';
+            if (callback) callback();
+        }, duration);
+    }
+
+    function showSelfiePreview(dataURL, duration, callback) {
+        const preview = document.getElementById('selfie-preview');
+        preview.src = dataURL;
+        preview.style.display = 'block';
+        setTimeout(() => {
+            preview.style.display = 'none';
+            if (callback) callback();
+        }, duration);
+    }
+
     function capturePhoto() {
         const img = document.getElementById('droidcam-stream');
         const canvas = document.getElementById('snapshot-canvas');
+        // Crop 30px from the top (watermark)
+        const cropY = 30;
+        const cropHeight = img.naturalHeight - cropY;
         canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
+        canvas.height = cropHeight;
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
+        ctx.drawImage(img, 0, cropY, img.naturalWidth, cropHeight, 0, 0, img.naturalWidth, cropHeight);
         const dataURL = canvas.toDataURL('image/jpeg');
         document.getElementById('status').textContent = 'Uploading photo...';
         // Send to backend
@@ -157,8 +193,11 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                document.getElementById('status').textContent = 'Photo captured! Redirecting to gallery...';
-                setTimeout(() => { window.location.href = '/gallery'; }, 1000);
+                document.getElementById('status').textContent = 'Photo captured!';
+                // Show selfie preview for 5 seconds, then go home
+                showSelfiePreview(dataURL, 5000, function() {
+                    window.location.href = '/';
+                });
             } else {
                 document.getElementById('status').textContent = 'Error: ' + (data.error || 'Failed to capture photo');
             }
@@ -170,7 +209,13 @@
 
     document.getElementById('droidcam-stream').onload = function() {
         document.getElementById('status').textContent = 'Camera ready! Smile for the selfie...';
-        showCountdown(5, capturePhoto);
+        sendAriSpeak('ready');
+        showCountdown(5, function() {
+            // Show bitmap.png for 1 second, then take selfie
+            showBitmapOverlay(1000, function() {
+                capturePhoto();
+            });
+        });
     };
     document.getElementById('droidcam-stream').onerror = function() {
         document.getElementById('status').textContent = 'Camera connection failed. Check DroidCam connection.';
