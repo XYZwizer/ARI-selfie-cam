@@ -11,7 +11,7 @@ import threading
 import signal
 import requests
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, url_for, Response
+from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, url_for, Response, send_file
 # from picamera2 import Picamera2
 # from picamera2.encoders import H264Encoder
 import subprocess
@@ -19,13 +19,32 @@ import glob
 import io
 import base64   
 from PIL import Image
+import json
+from pathlib import Path
 
 app = Flask(__name__)
 
+# Add CORS headers
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
+
+# Handle OPTIONS method for CORS preflight requests
+@app.route('/api/delete_file/<filename>', methods=['OPTIONS'])
+def delete_file_options(filename):
+    return '', 200
+
+@app.route('/api/clear_gallery', methods=['OPTIONS'])
+def clear_gallery_options():
+    return '', 200
+
 # Configuration
-GALLERY_PATH = 'static/gallery'
+GALLERY_PATH = Path('static/gallery')
 INTERVIEW_DURATION = 300  # 5 minutes max
-ARI_BASE_URL = 'http://ari-20c'  # Default ARI robot URL - change as needed
+ARI_BASE_URL = 'http://192.168.0.103'  # Default ARI robot URL - change as needed
 # DROIDCAM_IP = '172.20.24.0'
 DROIDCAM_IP = '192.168.0.126'
 
@@ -35,13 +54,29 @@ SLIDESHOW = "http://192.168.0.133:8080"
 UPLOAD_ENDPOINT = f"{SLIDESHOW}/upload"
 
 # Ensure gallery directory exists
-os.makedirs(GALLERY_PATH, exist_ok=True)
+GALLERY_PATH.mkdir(exist_ok=True)
 
 # Global variable to store the current interview prompt
 current_interview_prompt = "Nice outfit, tell me about it"
 
 # New global variable for interview trigger
 interview_trigger = False
+
+# Global variables
+interview_events = []
+event_lock = threading.Lock()
+
+def add_interview_event(event_type, data):
+    """Add a new event to the interview events list"""
+    with event_lock:
+        interview_events.append({
+            'type': event_type,
+            'data': data,
+            'timestamp': time.time()
+        })
+        # Keep only last 10 events
+        if len(interview_events) > 10:
+            interview_events.pop(0)
 
 class CameraManager:
     def __init__(self):
@@ -396,7 +431,7 @@ def take_selfie():
             img_bytes = base64.b64decode(encoded)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             filename = f'selfie_{timestamp}.jpg'
-            filepath = os.path.join(GALLERY_PATH, filename)
+            filepath = GALLERY_PATH / filename
             with open(filepath, 'wb') as f:
                 f.write(img_bytes)
             # Send to remote display
@@ -412,7 +447,7 @@ def take_selfie():
             # Fallback: try to capture from DroidCam stream (legacy)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             filename = f'selfie_{timestamp}.jpg'
-            filepath = os.path.join(GALLERY_PATH, filename)
+            filepath = GALLERY_PATH / filename
             if camera_manager.capture_droidcam_image(filepath):
                 # Send to remote display
                 send_to_remote_display(filepath)
@@ -558,8 +593,8 @@ def start_interview():
         video_filename = f'interview_{timestamp}.mp4'
         audio_filename = f'interview_{timestamp}.wav'
         
-        video_filepath = os.path.join(GALLERY_PATH, video_filename)
-        audio_filepath = os.path.join(GALLERY_PATH, audio_filename)
+        video_filepath = GALLERY_PATH / video_filename
+        audio_filepath = GALLERY_PATH / audio_filename
         
         # Start camera
         camera_manager.csi_camera.start()
@@ -567,7 +602,7 @@ def start_interview():
         
         # Start audio recording first
         try:
-            # Try different audio devices/methods
+            # Try different audio devices/methodsx
             audio_commands = [
                 ['arecord', '-D', 'plughw:1,0', '-f', 'cd', '-t', 'wav', audio_filepath],
                 ['arecord', '-D', 'hw:1,0', '-f', 'cd', '-t', 'wav', audio_filepath],
@@ -710,14 +745,105 @@ def serve_gallery_file(filename):
 def delete_file(filename):
     """Delete a file from gallery"""
     try:
-        filepath = os.path.join(GALLERY_PATH, filename)
-        if os.path.exists(filepath):
-            os.remove(filepath)
-            return jsonify({'success': True, 'message': 'File deleted'})
+        print(f"\n=== Delete File Request ===")
+        print(f"Filename: {filename}")
+        print(f"Method: {request.method}")
+        print(f"Headers: {dict(request.headers)}")
+        
+        file_path = GALLERY_PATH / filename
+        print(f"Full path: {file_path.absolute()}")
+        print(f"File exists: {file_path.exists()}")
+        
+        if file_path.exists():
+            try:
+                file_path.unlink()
+                print(f"Successfully deleted file: {filename}")
+                return jsonify({
+                    'success': True,
+                    'message': 'File deleted',
+                    'timestamp': datetime.now().isoformat()
+                })
+            except Exception as e:
+                print(f"Error during deletion: {str(e)}")
+                return jsonify({'error': f'Error deleting file: {str(e)}'}), 500
         else:
+            print(f"File not found: {file_path}")
             return jsonify({'error': 'File not found'}), 404
     except Exception as e:
+        print(f"Exception in delete_file: {str(e)}")
         return jsonify({'error': f'Error deleting file: {str(e)}'}), 500
+
+@app.route('/api/download_all', methods=['GET'])
+def download_all():
+    """Create a zip file of all gallery files and send it"""
+    try:
+        import tempfile
+        import subprocess
+        
+        # Create a temporary file for the zip
+        temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix='.zip')
+        temp_zip.close()  # Close so we can use it with subprocess
+        
+        print(f"Creating zip file at: {temp_zip.name}")
+        
+        # Use zip command to create archive
+        result = subprocess.run(['zip', '-j', temp_zip.name, f'{GALLERY_PATH}/*'], 
+                              capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            print(f"Error creating zip: {result.stderr}")
+            raise Exception(f"zip command failed: {result.stderr}")
+        
+        print("Zip file created successfully")
+        
+        # Send the zip file
+        return send_file(
+            temp_zip.name,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name='gallery.zip'
+        )
+    except Exception as e:
+        print(f"Error in download_all: {str(e)}")
+        return jsonify({'error': f'Error creating zip file: {str(e)}'}), 500
+    finally:
+        # Clean up the temporary file
+        try:
+            os.unlink(temp_zip.name)
+            print(f"Cleaned up temporary zip file: {temp_zip.name}")
+        except Exception as e:
+            print(f"Error cleaning up temp file: {str(e)}")
+
+@app.route('/api/clear_gallery', methods=['POST'])
+def clear_gallery():
+    """Delete all files from the gallery"""
+    try:
+        print(f"\n=== Clear Gallery Request ===")
+        print(f"Method: {request.method}")
+        print(f"Headers: {dict(request.headers)}")
+        print(f"Gallery path: {GALLERY_PATH.absolute()}")
+        
+        count = 0
+        for file_path in GALLERY_PATH.glob('*'):
+            if file_path.is_file():
+                try:
+                    file_path.unlink()
+                    count += 1
+                    print(f"Deleted file: {file_path}")
+                except Exception as e:
+                    print(f"Error deleting {file_path}: {e}")
+        
+        print(f"Gallery cleared. Removed {count} files.")
+        return jsonify({
+            'success': True,
+            'cleared_count': count,
+            'message': f'Successfully cleared {count} files',
+            'timestamp': datetime.now().isoformat()
+        })
+            
+    except Exception as e:
+        print(f"Exception in clear_gallery: {str(e)}")
+        return jsonify({'error': f'Error clearing gallery: {str(e)}'}), 500
 
 @app.route('/api/status')
 def get_status():
@@ -731,17 +857,44 @@ def get_status():
         'preview_active': camera_manager.preview_active
     })
 
+@app.route('/api/interview_events')
+def interview_events_stream():
+    """Stream interview events to clients"""
+    def generate():
+        last_timestamp = 0
+        while True:
+            with event_lock:
+                # Send any new events
+                for event in interview_events:
+                    if event['timestamp'] > last_timestamp:
+                        yield f"data: {json.dumps(event)}\n\n"
+                        last_timestamp = event['timestamp']
+            time.sleep(1)  # Check every second
+    
+    return Response(generate(), mimetype='text/event-stream',
+                   headers={'Cache-Control': 'no-cache',
+                           'Connection': 'keep-alive'})
+
 @app.route('/api/interview_prompt', methods=['GET', 'POST'])
 def interview_prompt():
+    """Handle interview prompt setting and retrieval"""
     global current_interview_prompt
     if request.method == 'POST':
-        data = request.get_json()
-        prompt = data.get('prompt', '').strip()
-        if prompt:
-            current_interview_prompt = prompt
-            return jsonify({'success': True, 'prompt': current_interview_prompt})
-        else:
-            return jsonify({'error': 'No prompt provided'}), 400
+        try:
+            data = request.get_json()
+            prompt = data.get('prompt', '').strip()
+            if prompt:
+                current_interview_prompt = prompt
+                # Add event for interview page
+                add_interview_event('new_prompt', {
+                    'prompt': prompt,
+                    'auto_start': True
+                })
+                return jsonify({'success': True, 'prompt': current_interview_prompt})
+            else:
+                return jsonify({'error': 'No prompt provided'}), 400
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
     else:  # GET
         return jsonify({'prompt': current_interview_prompt})
 

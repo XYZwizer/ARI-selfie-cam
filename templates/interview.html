@@ -32,6 +32,40 @@
 <script>
 let recording = false;
 
+// Set up Server-Sent Events connection
+const eventSource = new EventSource('/api/interview_events');
+
+eventSource.onmessage = function(event) {
+    try {
+        const data = JSON.parse(event.data);
+        console.log('Received interview event:', data);
+        
+        if (data.type === 'new_prompt') {
+            // Update the question display
+            document.getElementById('interview-question').textContent = data.data.prompt;
+            
+            // Auto-start if requested and not already recording
+            if (data.data.auto_start && !recording) {
+                showMessage('New interview question received! Starting recording...', 'info');
+                setTimeout(() => {
+                    startInterview();
+                }, 2000);
+            }
+        }
+    } catch (e) {
+        console.error('Error parsing event data:', e);
+    }
+};
+
+eventSource.onerror = function(event) {
+    console.error('EventSource failed:', event);
+};
+
+// Close connection when leaving page
+window.addEventListener('beforeunload', function() {
+    eventSource.close();
+});
+
 // Fetch and display the current interview prompt
 async function loadPrompt() {
     try {
@@ -51,7 +85,6 @@ window.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ reset: true })
     });
     loadPrompt();
-    setInterval(loadPrompt, 2000); // Poll every 2 seconds
 });
 
 async function startInterview() {

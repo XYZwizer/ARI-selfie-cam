@@ -495,17 +495,11 @@
 
         <!-- Interview Section -->
         <div class="section">
-            <div class="section-title">🎤 Interview Prompt</div>
+            <div class="section-title">🎤 Interview Prompt (Auto-starts Interview)</div>
             <input type="text" class="text-input" id="interviewInput" placeholder="Enter interview prompt...">
-            <button class="send-btn" onclick="sendInterviewPrompt()">Send to Interview</button>
-        </div>
-
-        <!-- Interview Control Section -->
-        <div class="section">
-            <div class="section-title">🎬 Interview Control</div>
-            <div class="interview-controls">
-                <button id="startInterviewBtn" class="send-btn" onclick="startInterview()">Start Interview</button>
-                <button id="stopInterviewBtn" class="send-btn" style="display: none; background: linear-gradient(45deg, #dc3545, #c82333);" onclick="stopInterview()">Stop Interview</button>
+            <div class="interview-controls" style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="send-btn" onclick="sendInterviewPrompt()">Send & Start</button>
+                <button class="send-btn" style="background: linear-gradient(45deg, #dc3545, #c82333);" onclick="stopInterview()">Stop Interview</button>
             </div>
             <div id="interviewStatus" style="margin-top: 10px; font-size: 13px; color: #666;"></div>
         </div>
@@ -545,23 +539,34 @@
         });
     });
 
-    function sendInterviewPrompt() {
+    async function sendInterviewPrompt() {
         const input = document.getElementById('interviewInput');
         const text = input.value.trim();
         if (!text) return;
-        // Send to ARI TTS
-        sendAriTTS(text);
-        // Send to interview prompt endpoint
-        fetch('/api/interview_prompt', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: text })
-        });
-        // Trigger the interview page to open
-        fetch('/api/interview_trigger', {
-            method: 'POST'
-        });
-        input.value = '';
+        
+        const status = document.getElementById('interviewStatus');
+        status.textContent = 'Sending prompt and starting interview...';
+        
+        try {
+            // Send to ARI TTS
+            sendAriTTS(text);
+            
+            // Send to interview prompt endpoint
+            const response = await fetch('/api/interview_prompt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: text })
+            });
+            
+            if (response.ok) {
+                status.textContent = 'Interview started!';
+                input.value = '';
+            } else {
+                throw new Error('Failed to start interview');
+            }
+        } catch (error) {
+            status.textContent = `Error: ${error.message}`;
+        }
     }
 
     // Add keyboard event listener for interview input
@@ -663,94 +668,6 @@
     updateBatteryStatus();
     setInterval(updateBatteryStatus, 30000);
 
-    // Interview control functions
-    async function startInterview() {
-        const startBtn = document.getElementById('startInterviewBtn');
-        const stopBtn = document.getElementById('stopInterviewBtn');
-        const status = document.getElementById('interviewStatus');
-        
-        try {
-            status.textContent = 'Starting interview...';
-            startBtn.disabled = true;
-            
-            const response = await fetch('/api/start_interview', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                status.textContent = 'Interview recording started!';
-                startBtn.style.display = 'none';
-                stopBtn.style.display = 'block';
-            } else {
-                status.textContent = `Error: ${result.error}`;
-                startBtn.disabled = false;
-            }
-        } catch (error) {
-            status.textContent = `Error: ${error.message}`;
-            startBtn.disabled = false;
-        }
-    }
-
-    async function stopInterview() {
-        const startBtn = document.getElementById('startInterviewBtn');
-        const stopBtn = document.getElementById('stopInterviewBtn');
-        const status = document.getElementById('interviewStatus');
-        
-        try {
-            status.textContent = 'Stopping interview...';
-            stopBtn.disabled = true;
-            
-            const response = await fetch('/api/stop_interview', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                status.textContent = 'Interview completed and saved to gallery!';
-                stopBtn.style.display = 'none';
-                startBtn.style.display = 'block';
-                startBtn.disabled = false;
-            } else {
-                status.textContent = `Error: ${result.error}`;
-                stopBtn.disabled = false;
-            }
-        } catch (error) {
-            status.textContent = `Error: ${error.message}`;
-            stopBtn.disabled = false;
-        }
-    }
-
-    // Check interview status on page load
-    async function checkInterviewStatus() {
-        try {
-            const response = await fetch('/api/status');
-            const data = await response.json();
-            
-            const startBtn = document.getElementById('startInterviewBtn');
-            const stopBtn = document.getElementById('stopInterviewBtn');
-            
-            if (data.recording) {
-                startBtn.style.display = 'none';
-                stopBtn.style.display = 'block';
-                document.getElementById('interviewStatus').textContent = 'Interview recording in progress...';
-            } else {
-                startBtn.style.display = 'block';
-                stopBtn.style.display = 'none';
-                document.getElementById('interviewStatus').textContent = '';
-            }
-        } catch (error) {
-            console.error('Error checking interview status:', error);
-        }
-    }
-
-    // Check status when page loads
-    document.addEventListener('DOMContentLoaded', checkInterviewStatus);
-
     // Remote display functions
     async function sendToRemoteDisplay() {
         const status = document.getElementById('remoteDisplayStatus');
@@ -796,6 +713,27 @@
             
         } catch (error) {
             console.error('Error sending to remote display:', error);
+            status.textContent = `Error: ${error.message}`;
+        }
+    }
+
+    // Add stop interview function
+    async function stopInterview() {
+        const status = document.getElementById('interviewStatus');
+        status.textContent = 'Stopping interview...';
+        
+        try {
+            const response = await fetch('/api/stop_interview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (response.ok) {
+                status.textContent = 'Interview stopped!';
+            } else {
+                throw new Error('Failed to stop interview');
+            }
+        } catch (error) {
             status.textContent = `Error: ${error.message}`;
         }
     }
