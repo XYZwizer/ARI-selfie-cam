@@ -31,6 +31,8 @@ DROIDCAM_IP = '192.168.0.126'
 
 DROIDCAM_PORT = 4747
 DROIDCAM_URL = "http://192.168.0.126:4747/video"
+SLIDESHOW = "http://192.168.0.133:8080"
+UPLOAD_ENDPOINT = f"{SLIDESHOW}/upload"
 
 # Ensure gallery directory exists
 os.makedirs(GALLERY_PATH, exist_ok=True)
@@ -356,6 +358,29 @@ def start_selfie():
     except Exception as e:
         return jsonify({'error': f'Error checking DroidCam: {str(e)}'}), 500
 
+def send_to_remote_display(filepath):
+    """Send a file to the remote display"""
+    try:
+        # Send the actual file to the remote display
+        with open(filepath, 'rb') as image_file:
+            files = {'image': (os.path.basename(filepath), image_file, 'image/jpeg')}
+            data = {
+                'duration': '10'  # 10 seconds
+            }
+            response = requests.post(
+                UPLOAD_ENDPOINT,
+                files=files,
+                data=data,
+                timeout=5
+            )
+            if response.ok:
+                print(f"Successfully sent {os.path.basename(filepath)} to remote display")
+            else:
+                print(f"Failed to send {os.path.basename(filepath)} to remote display: {response.status_code}")
+                print(f"Response: {response.text}")
+    except Exception as e:
+        print(f"Error sending to remote display: {e}")
+
 # Update take_selfie to use the new capture method
 @app.route('/api/take_selfie', methods=['POST'])
 def take_selfie():
@@ -374,6 +399,8 @@ def take_selfie():
             filepath = os.path.join(GALLERY_PATH, filename)
             with open(filepath, 'wb') as f:
                 f.write(img_bytes)
+            # Send to remote display
+            send_to_remote_display(filepath)
             # Send 'natural' motion to ARI after photo is taken
             send_ari_motion('natural')
             return jsonify({
@@ -387,6 +414,8 @@ def take_selfie():
             filename = f'selfie_{timestamp}.jpg'
             filepath = os.path.join(GALLERY_PATH, filename)
             if camera_manager.capture_droidcam_image(filepath):
+                # Send to remote display
+                send_to_remote_display(filepath)
                 # Send 'natural' motion to ARI after photo is taken
                 send_ari_motion('natural')
                 return jsonify({
@@ -656,6 +685,10 @@ def stop_interview():
             print("No valid audio file found - keeping video only")
             if camera_manager.current_audio and os.path.exists(camera_manager.current_audio):
                 os.remove(camera_manager.current_audio)
+        
+        # Send the final video to remote display
+        if os.path.exists(camera_manager.current_video):
+            send_to_remote_display(camera_manager.current_video)
         
         camera_manager.cleanup_csi_camera()
         

@@ -518,6 +518,13 @@
                 <a href="/admin-gallery" class="nav-btn gallery-btn">🖼️ Admin Gallery</a>
             </div>
         </div>
+
+        <!-- Remote Display Section -->
+        <div class="section">
+            <div class="section-title">📺 Remote Display</div>
+            <button class="send-btn" onclick="sendToRemoteDisplay()">Send Gallery to Display</button>
+            <div id="remoteDisplayStatus" style="margin-top: 10px; font-size: 13px; color: #666;"></div>
+        </div>
     </div>
 
     <script>
@@ -743,6 +750,55 @@
 
     // Check status when page loads
     document.addEventListener('DOMContentLoaded', checkInterviewStatus);
+
+    // Remote display functions
+    async function sendToRemoteDisplay() {
+        const status = document.getElementById('remoteDisplayStatus');
+        status.textContent = 'Sending gallery to remote display...';
+        
+        try {
+            // First get the list of gallery files
+            const response = await fetch('/api/status');
+            const data = await response.json();
+            
+            // Get all gallery files
+            const galleryResponse = await fetch('/admin-gallery');
+            const galleryText = await galleryResponse.text();
+            
+            // Extract image and video files from the gallery
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(galleryText, 'text/html');
+            const galleryItems = Array.from(doc.querySelectorAll('.gallery-item img, .gallery-item video'))
+                .map(item => item.src)
+                .filter(src => src); // Filter out any empty sources
+            
+            if (galleryItems.length === 0) {
+                status.textContent = 'No items found in gallery';
+                return;
+            }
+            
+            // Send to remote display
+            const remoteResponse = await fetch('http://192.168.0.133:8080/upload', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    items: galleryItems
+                })
+            });
+            
+            if (remoteResponse.ok) {
+                status.textContent = `Successfully sent ${galleryItems.length} items to display`;
+            } else {
+                throw new Error('Remote display server error');
+            }
+            
+        } catch (error) {
+            console.error('Error sending to remote display:', error);
+            status.textContent = `Error: ${error.message}`;
+        }
+    }
     </script>
 </body>
 </html>
