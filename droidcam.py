@@ -21,6 +21,7 @@ import base64
 from PIL import Image
 import json
 from pathlib import Path
+from picamera2 import Picamera2
 
 app = Flask(__name__)
 
