@@ -908,13 +908,15 @@ def interview_trigger_route():
             return jsonify({'success': True, 'reset': True})
         else:
             interview_trigger = True
+            # Start the interview when trigger is set
+            try:
+                if not camera_manager.recording:
+                    start_interview()
+            except Exception as e:
+                print(f"Error starting interview from trigger: {e}")
             return jsonify({'success': True})
     else:
         return jsonify({'trigger': interview_trigger})
-
-@app.route('/waiting')
-def waiting_page():
-    return render_template('waiting.html')
 
 @app.errorhandler(404)
 def not_found(error):

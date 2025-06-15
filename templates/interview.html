@@ -78,7 +78,7 @@ async function loadPrompt() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-    // Reset the interview trigger so /waiting doesn't immediately redirect again
+    // Reset the interview trigger so it doesn't immediately start again
     fetch('/api/interview_trigger', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -157,9 +157,9 @@ async function stopInterview() {
             
             showMessage('Interview saved successfully!', 'success');
             
-            // Auto-redirect to waiting page after 3 seconds
+            // Auto-redirect to home page after 3 seconds
             setTimeout(() => {
-                window.location.href = '/waiting';
+                window.location.href = '/';
             }, 3000);
             
         } else {
