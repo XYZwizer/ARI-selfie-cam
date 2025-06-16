@@ -1,0 +1,23 @@
+fix the volume - http://ari-20c/parameter/volume
+getCurrentVolume();  - ari IP hard coded
+
+
+Battery - he robot’s power status is reported in the /power_status ROS topic.
+
+charge: the percentage battery charge.  change it to charge?
+
+    // Battery status
+    function updateBatteryStatus() {
+        fetch('http://ari-Xc/topic/power_diagnostic')
+            .then(response => response.json())
+            .then(data => {
+                const power = data.msg;
+                document.getElementById('batteryCharge').textContent = Math.round(power.charge);
+                document.getElementById('batteryConnected').textContent = power.is_connected ? 'Yes' : 'No';
+            })
+            .catch(error => console.error('Error fetching battery status:', error));
+    }
+
+Set constants and have them editable from admin - maybe dont need to set them again, will use hostnames
+
+slide show IP by hostname?

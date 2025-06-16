@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Minimal ARI Joystick Debug</title>
+  <style>
+    .joystick-area {
+      width: 120px;
+      height: 120px;
+      background: #ddd;
+      border-radius: 50%;
+      position: relative;
+      border: 2px solid #333;
+      margin: 50px auto;
+    }
+    .joystick-knob {
+      width: 40px;
+      height: 40px;
+      background: #ff6b35;
+      border-radius: 50%;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      cursor: grab;
+    }
+    #debug {
+      text-align: center;
+      font-family: monospace;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="joystick-area" id="joystickArea">
+  <div class="joystick-knob" id="joystickKnob"></div>
+</div>
+
+<div id="debug">
+  <div>🔌 <span id="status">Connecting...</span></div>
+  <div>📊 X: <span id="dbgX">0</span> Y: <span id="dbgY">0</span></div>
+  <div>📨 Sent: <span id="dbgSent">0</span></div>
+</div>
+
+<script>
+const rosSocket = new WebSocket('ws://192.168.0.103:9090');
+const statusEl = document.getElementById('status');
+const dbgX = document.getElementById('dbgX');
+const dbgY = document.getElementById('dbgY');
+const dbgSent = document.getElementById('dbgSent');
+
+let sentCount = 0;
+
+rosSocket.onopen = () => statusEl.textContent = '✅ Connected';
+rosSocket.onerror = err => statusEl.textContent = '❌ Error';
+rosSocket.onclose = () => statusEl.textContent = '⚠ Closed';
+
+const area = document.getElementById('joystickArea');
+const knob = document.getElementById('joystickKnob');
+const maxDistance = 40;
+
+let isDragging = false;
+
+knob.addEventListener('mousedown', startDrag);
+document.addEventListener('mousemove', drag);
+document.addEventListener('mouseup', endDrag);
+
+knob.addEventListener('touchstart', startDrag);
+document.addEventListener('touchmove', drag);
+document.addEventListener('touchend', endDrag);
+
+function startDrag(e) {
+  isDragging = true;
+  knob.style.transition = 'none';
+  e.preventDefault();
+}
+
+function drag(e) {
+  if (!isDragging) return;
+
+  const rect = area.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+  let dx = clientX - rect.left - rect.width / 2;
+  let dy = clientY - rect.top - rect.height / 2;
+
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  if (distance > maxDistance) {
+    const angle = Math.atan2(dy, dx);
+    dx = Math.cos(angle) * maxDistance;
+    dy = Math.sin(angle) * maxDistance;
+  }
+
+  knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+
+  const normX = dx / maxDistance;
+  const normY = -dy / maxDistance;  // Invert Y for up = positive
+
+  dbgX.textContent = normX.toFixed(2);
+  dbgY.textContent = normY.toFixed(2);
+
+  sendCmd(normX, normY);
+}
+
+function endDrag() {
+  if (!isDragging) return;
+  isDragging = false;
+  knob.style.transition = 'all 0.2s ease';
+  knob.style.transform = 'translate(-50%, -50%)';
+  sendCmd(0, 0);
+
+  dbgX.textContent = '0.00';
+  dbgY.textContent = '0.00';
+}
+
+function sendCmd(x, y) {
+  if (rosSocket.readyState !== WebSocket.OPEN) return;
+
+  const msg = {
+    op: "publish",
+    topic: "/rviz_joy_vel",
+    msg: {
+      linear: { x: y, y: 0, z: 0 },
+      angular: { x: 0, y: 0, z: x }
+    }
+  };
+
+  rosSocket.send(JSON.stringify(msg));
+  sentCount++;
+  dbgSent.textContent = sentCount;
+}
+</script>
+
+</body>
+</html>
