@@ -424,7 +424,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🤖 ARI Robot Control</h1>
+            <h1>🤖 Isobella Control</h1>
             <p>Advanced camera & interview control</p>
         </div>
 
@@ -495,11 +495,12 @@
 
         <!-- Interview Section -->
         <div class="section">
-            <div class="section-title">🎤 Interview Prompt (Auto-starts Interview)</div>
+            <div class="section-title">🎤 Interview Control</div>
             <input type="text" class="text-input" id="interviewInput" placeholder="Enter interview prompt...">
             <div class="interview-controls" style="display: flex; gap: 10px; margin-top: 10px;">
-                <button class="send-btn" onclick="sendInterviewPrompt()">Send & Start</button>
-                <button class="send-btn" style="background: linear-gradient(45deg, #dc3545, #c82333);" onclick="stopInterview()">Stop Interview</button>
+                <button class="send-btn" onclick="sendInterviewPrompt()">Send Prompt</button>
+                <button class="send-btn" onclick="remoteStartInterview()">Start Interview</button>
+                <button class="send-btn" style="background: linear-gradient(45deg, #dc3545, #c82333);" onclick="remoteStopInterview()">Stop Interview</button>
             </div>
             <div id="interviewStatus" style="margin-top: 10px; font-size: 13px; color: #666;"></div>
         </div>
@@ -511,13 +512,6 @@
                 <a href="/" class="nav-btn">🏠 Home</a>
                 <a href="/admin-gallery" class="nav-btn gallery-btn">🖼️ Admin Gallery</a>
             </div>
-        </div>
-
-        <!-- Remote Display Section -->
-        <div class="section">
-            <div class="section-title">📺 Remote Display</div>
-            <button class="send-btn" onclick="sendToRemoteDisplay()">Send Gallery to Display</button>
-            <div id="remoteDisplayStatus" style="margin-top: 10px; font-size: 13px; color: #666;"></div>
         </div>
     </div>
 
@@ -545,7 +539,7 @@
         if (!text) return;
         
         const status = document.getElementById('interviewStatus');
-        status.textContent = 'Sending prompt and starting interview...';
+        status.textContent = 'Sending prompt...';
         
         try {
             // Send to ARI TTS
@@ -559,22 +553,57 @@
             });
             
             if (response.ok) {
-                status.textContent = 'Interview started!';
+                status.textContent = 'Prompt sent successfully!';
                 input.value = '';
             } else {
-                throw new Error('Failed to start interview');
+                throw new Error('Failed to send prompt');
             }
         } catch (error) {
             status.textContent = `Error: ${error.message}`;
         }
     }
 
-    // Add keyboard event listener for interview input
-    document.getElementById('interviewInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            sendInterviewPrompt();
+    async function remoteStartInterview() {
+        const status = document.getElementById('interviewStatus');
+        status.textContent = 'Sending start command...';
+        
+        try {
+            const response = await fetch('/api/interview_events', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'start_interview' })
+            });
+            
+            if (response.ok) {
+                status.textContent = 'Start command sent!';
+            } else {
+                throw new Error('Failed to send start command');
+            }
+        } catch (error) {
+            status.textContent = `Error: ${error.message}`;
         }
-    });
+    }
+
+    async function remoteStopInterview() {
+        const status = document.getElementById('interviewStatus');
+        status.textContent = 'Sending stop command...';
+        
+        try {
+            const response = await fetch('/api/interview_events', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'stop_interview' })
+            });
+            
+            if (response.ok) {
+                status.textContent = 'Stop command sent!';
+            } else {
+                throw new Error('Failed to send stop command');
+            }
+        } catch (error) {
+            status.textContent = `Error: ${error.message}`;
+        }
+    }
 
     // Save soundboard settings to localStorage
     function saveSoundboardSettings() {
@@ -667,76 +696,6 @@
     // Update battery status every 30 seconds
     updateBatteryStatus();
     setInterval(updateBatteryStatus, 30000);
-
-    // Remote display functions
-    async function sendToRemoteDisplay() {
-        const status = document.getElementById('remoteDisplayStatus');
-        status.textContent = 'Sending gallery to remote display...';
-        
-        try {
-            // First get the list of gallery files
-            const response = await fetch('/api/status');
-            const data = await response.json();
-            
-            // Get all gallery files
-            const galleryResponse = await fetch('/admin-gallery');
-            const galleryText = await galleryResponse.text();
-            
-            // Extract image and video files from the gallery
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(galleryText, 'text/html');
-            const galleryItems = Array.from(doc.querySelectorAll('.gallery-item img, .gallery-item video'))
-                .map(item => item.src)
-                .filter(src => src); // Filter out any empty sources
-            
-            if (galleryItems.length === 0) {
-                status.textContent = 'No items found in gallery';
-                return;
-            }
-            
-            // Send to remote display
-            const remoteResponse = await fetch('http://192.168.0.133:8080/upload', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    items: galleryItems
-                })
-            });
-            
-            if (remoteResponse.ok) {
-                status.textContent = `Successfully sent ${galleryItems.length} items to display`;
-            } else {
-                throw new Error('Remote display server error');
-            }
-            
-        } catch (error) {
-            console.error('Error sending to remote display:', error);
-            status.textContent = `Error: ${error.message}`;
-        }
-    }
-
-    // Add stop interview function
-    async function stopInterview() {
-        const status = document.getElementById('interviewStatus');
-        status.textContent = 'Stopping interview...';
-        
-        try {
-            const response = await fetch('/api/stop_interview', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            
-            if (response.ok) {
-                status.textContent = 'Interview stopped!';
-            } else {
-                throw new Error('Failed to stop interview');
-            }
-        } catch (error) {
-            status.textContent = `Error: ${error.message}`;
-        }
-    }
     </script>
 </body>
 </html>

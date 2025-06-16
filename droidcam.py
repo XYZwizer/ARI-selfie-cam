@@ -12,8 +12,8 @@ import signal
 import requests
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, url_for, Response, send_file
-# from picamera2 import Picamera2
-# from picamera2.encoders import H264Encoder
+from picamera2 import Picamera2
+from picamera2.encoders import H264Encoder
 import subprocess
 import glob
 import io
@@ -21,7 +21,7 @@ import base64
 from PIL import Image
 import json
 from pathlib import Path
-from picamera2 import Picamera2
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
@@ -603,12 +603,12 @@ def start_interview():
         
         # Start audio recording first
         try:
-            # Try different audio devices/methodsx
+            # Try different audio devices/methods
             audio_commands = [
-                ['arecord', '-D', 'plughw:1,0', '-f', 'cd', '-t', 'wav', audio_filepath],
-                ['arecord', '-D', 'hw:1,0', '-f', 'cd', '-t', 'wav', audio_filepath],
-                ['arecord', '-D', 'plughw:0,0', '-f', 'cd', '-t', 'wav', audio_filepath],
-                ['arecord', '-f', 'cd', '-t', 'wav', audio_filepath]  # Use default device
+                ['arecord', '-D', 'plughw:1,0', '-f', 'cd', '-t', 'wav', str(audio_filepath)],
+                ['arecord', '-D', 'hw:1,0', '-f', 'cd', '-t', 'wav', str(audio_filepath)],
+                ['arecord', '-D', 'plughw:0,0', '-f', 'cd', '-t', 'wav', str(audio_filepath)],
+                ['arecord', '-f', 'cd', '-t', 'wav', str(audio_filepath)]  # Use default device
             ]
             
             audio_started = False
@@ -638,7 +638,7 @@ def start_interview():
         
         # Start video recording
         encoder = H264Encoder(bitrate=2000000)  # Lower bitrate for Pi 3B
-        camera_manager.csi_camera.start_recording(encoder, video_filepath)
+        camera_manager.csi_camera.start_recording(encoder, str(video_filepath))
         camera_manager.recording = True
         
         # Store file paths for cleanup
@@ -684,13 +684,14 @@ def stop_interview():
             os.path.exists(camera_manager.current_audio) and 
             os.path.getsize(camera_manager.current_audio) > 1000):  # Audio file has content
             
-            combined_file = camera_manager.current_video.replace('.mp4', '_combined.mp4')
+            # Create combined filename by replacing .mp4 with _combined.mp4
+            combined_file = str(camera_manager.current_video).replace('.mp4', '_combined.mp4')
             try:
                 # Use ffmpeg to combine audio and video
                 result = subprocess.run([
                     'ffmpeg', '-y',  # Overwrite output file
-                    '-i', camera_manager.current_video,
-                    '-i', camera_manager.current_audio,
+                    '-i', str(camera_manager.current_video),
+                    '-i', str(camera_manager.current_audio),
                     '-c:v', 'copy',  # Copy video stream
                     '-c:a', 'aac',   # Encode audio to AAC
                     '-shortest',     # Stop when shortest stream ends
@@ -742,9 +743,9 @@ def serve_gallery_file(filename):
     """Serve files from gallery directory"""
     return send_from_directory(GALLERY_PATH, filename)
 
-@app.route('/api/delete_file/<filename>', methods=['DELETE'])
+@app.route('/api/delete_file/<filename>', methods=['POST'])
 def delete_file(filename):
-    """Delete a file from gallery"""
+    """Delete a specific file"""
     try:
         print(f"\n=== Delete File Request ===")
         print(f"Filename: {filename}")
@@ -752,27 +753,53 @@ def delete_file(filename):
         print(f"Headers: {dict(request.headers)}")
         
         file_path = GALLERY_PATH / filename
-        print(f"Full path: {file_path.absolute()}")
+        print(f"Full file path: {file_path.absolute()}")
         print(f"File exists: {file_path.exists()}")
+        print(f"File permissions: {oct(file_path.stat().st_mode)[-3:]}")
         
-        if file_path.exists():
-            try:
-                file_path.unlink()
-                print(f"Successfully deleted file: {filename}")
-                return jsonify({
-                    'success': True,
-                    'message': 'File deleted',
-                    'timestamp': datetime.now().isoformat()
-                })
-            except Exception as e:
-                print(f"Error during deletion: {str(e)}")
-                return jsonify({'error': f'Error deleting file: {str(e)}'}), 500
-        else:
+        if not file_path.exists():
             print(f"File not found: {file_path}")
             return jsonify({'error': 'File not found'}), 404
+            
+        try:
+            file_path.unlink()
+            print(f"Successfully deleted file: {file_path}")
+            return jsonify({
+                'success': True,
+                'message': f'Deleted {filename}',
+                'timestamp': datetime.now().isoformat()
+            })
+        except Exception as e:
+            print(f"Error during deletion: {str(e)}")
+            return jsonify({'error': f'Error deleting file: {str(e)}'}), 500
+            
     except Exception as e:
         print(f"Exception in delete_file: {str(e)}")
-        return jsonify({'error': f'Error deleting file: {str(e)}'}), 500
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/clear_gallery', methods=['POST'])
+def clear_gallery():
+    """Clear all files from the gallery"""
+    try:
+        print("Attempting to clear gallery")
+        count = 0
+        for file_path in GALLERY_PATH.glob('*'):
+            if file_path.is_file():
+                file_path.unlink()
+                count += 1
+                print(f"Deleted: {file_path}")
+                
+        print(f"Gallery cleared. Removed {count} files.")
+        return jsonify({
+            'success': True,
+            'cleared_count': count,
+            'message': f'Successfully cleared {count} files',
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Clear gallery error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/download_all', methods=['GET'])
 def download_all():
@@ -815,37 +842,6 @@ def download_all():
         except Exception as e:
             print(f"Error cleaning up temp file: {str(e)}")
 
-@app.route('/api/clear_gallery', methods=['POST'])
-def clear_gallery():
-    """Delete all files from the gallery"""
-    try:
-        print(f"\n=== Clear Gallery Request ===")
-        print(f"Method: {request.method}")
-        print(f"Headers: {dict(request.headers)}")
-        print(f"Gallery path: {GALLERY_PATH.absolute()}")
-        
-        count = 0
-        for file_path in GALLERY_PATH.glob('*'):
-            if file_path.is_file():
-                try:
-                    file_path.unlink()
-                    count += 1
-                    print(f"Deleted file: {file_path}")
-                except Exception as e:
-                    print(f"Error deleting {file_path}: {e}")
-        
-        print(f"Gallery cleared. Removed {count} files.")
-        return jsonify({
-            'success': True,
-            'cleared_count': count,
-            'message': f'Successfully cleared {count} files',
-            'timestamp': datetime.now().isoformat()
-        })
-            
-    except Exception as e:
-        print(f"Exception in clear_gallery: {str(e)}")
-        return jsonify({'error': f'Error clearing gallery: {str(e)}'}), 500
-
 @app.route('/api/status')
 def get_status():
     """Get current recording status and camera info"""
@@ -857,6 +853,22 @@ def get_status():
         'droidcam_active': camera_manager.droidcam_active,
         'preview_active': camera_manager.preview_active
     })
+
+@app.route('/api/interview_events', methods=['POST'])
+def send_interview_event():
+    """Send an interview control event to connected clients"""
+    try:
+        data = request.get_json()
+        event_type = data.get('type')
+        
+        if event_type in ['start_interview', 'stop_interview']:
+            add_interview_event(event_type, {})
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Invalid event type'}), 400
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/interview_events')
 def interview_events_stream():
@@ -888,8 +900,7 @@ def interview_prompt():
                 current_interview_prompt = prompt
                 # Add event for interview page
                 add_interview_event('new_prompt', {
-                    'prompt': prompt,
-                    'auto_start': True
+                    'prompt': prompt
                 })
                 return jsonify({'success': True, 'prompt': current_interview_prompt})
             else:

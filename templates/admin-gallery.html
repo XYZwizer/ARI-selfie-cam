@@ -1,232 +1,298 @@
-{% extends "base.html" %}
-
-{% block title %}Admin Gallery{% endblock %}
-
-{% block content %}
-<a href="/admin" class="button back-button">🏠 Admin</a>
-
-<div class="container">
-    <h1>🖼️ Admin Gallery</h1>
-    
-    {% if files %}
-        <p style="margin-bottom: 30px; opacity: 0.9;">
-            {{ files|length }} file(s) in your gallery
-        </p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Gallery</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         
-        <div style="margin-bottom: 20px;">
-            <button onclick="downloadAllFiles()" class="button primary">
-                💾 Download All Files
-            </button>
-        </div>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            padding: 20px;
+        }
         
-        <div class="gallery-grid">
-            {% for file in files %}
-                <div class="gallery-item">
-                    <div class="gallery-item-title">
-                        {{ file.replace('_', ' ').replace('.jpg', '').replace('.mp4', '') }}
-                    </div>
-                    
-                    {% if file.endswith('.jpg') %}
-                        <img src="/gallery/{{ file }}" alt="Photo: {{ file }}" 
-                             onclick="openLightbox('/gallery/{{ file }}', 'image')">
-                    {% elif file.endswith('.mp4') %}
-                        <video controls preload="metadata">
-                            <source src="/gallery/{{ file }}" type="video/mp4">
-                            Your browser does not support the video tag.
-                        </video>
-                    {% endif %}
-                    
-                    <div style="margin-top: 10px;">
-                        <a href="/gallery/{{ file }}" download class="button" style="font-size: 0.8em; padding: 8px 15px;">
-                            💾 Download
-                        </a>
-                        <button onclick="deleteFile('{{ file }}')" class="button danger" style="font-size: 0.8em; padding: 8px 15px;">
-                            🗑️ Delete
-                        </button>
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
+        .container {
+            text-align: center;
+            padding: 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
         
-        <div style="margin-top: 40px;">
-            <button onclick="clearGallery()" class="button danger">
-                🗑️ Clear All Files
-            </button>
-        </div>
-    {% else %}
-        <div style="margin-top: 50px;">
-            <p style="font-size: 1.3em; opacity: 0.7; margin-bottom: 30px;">
-                📷 No photos or videos yet
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .button {
+            display: inline-block;
+            padding: 12px 25px;
+            margin: 5px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50px;
+            color: white;
+            text-decoration: none;
+            font-size: 1em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+        
+        .button:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .button.primary {
+            background: rgba(76, 175, 80, 0.3);
+            border-color: rgba(76, 175, 80, 0.5);
+        }
+        
+        .button.danger {
+            background: rgba(244, 67, 54, 0.3);
+            border-color: rgba(244, 67, 54, 0.5);
+        }
+        
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .gallery-item {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .gallery-item img, 
+        .gallery-item video {
+            width: 100%;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .gallery-item-title {
+            font-size: 0.9em;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <a href="/admin" class="button back-button">🏠 Admin</a>
+
+    <div class="container">
+        <h1>🖼️ Admin Gallery</h1>
+        
+        {% if files %}
+            <p style="margin-bottom: 30px; opacity: 0.9;">
+                {{ files|length }} file(s) in your gallery
             </p>
-            <p style="opacity: 0.6; margin-bottom: 40px;">
-                Take some selfies or record interviews to see them here!
-            </p>
-        </div>
-    {% endif %}
-</div>
-
-<!-- Lightbox for viewing images -->
-<div id="lightbox" class="hidden" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px;">
-    <div style="position: relative; max-width: 90%; max-height: 90%;">
-        <img id="lightbox-image" style="max-width: 100%; max-height: 100%; border-radius: 10px;">
-        <button onclick="closeLightbox()" style="position: absolute; top: -10px; right: -10px; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 2em; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; backdrop-filter: blur(10px);">
-            ×
-        </button>
+            
+            <div style="margin-bottom: 20px;">
+                <button onclick="downloadAllFiles()" class="button primary">
+                    💾 Download All Files
+                </button>
+            </div>
+            
+            <div class="gallery-grid">
+                {% for file in files %}
+                    <div class="gallery-item">
+                        <div class="gallery-item-title">
+                            {{ file.replace('_', ' ').replace('.jpg', '').replace('.mp4', '') }}
+                        </div>
+                        
+                        {% if file.endswith('.jpg') %}
+                            <img src="/gallery/{{ file }}" alt="Photo: {{ file }}" 
+                                 onclick="openLightbox('/gallery/{{ file }}', 'image')">
+                        {% elif file.endswith('.mp4') %}
+                            <video controls preload="metadata">
+                                <source src="/gallery/{{ file }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        {% endif %}
+                        
+                        <div style="margin-top: 10px;">
+                            <a href="/gallery/{{ file }}" download class="button" style="font-size: 0.8em; padding: 8px 15px;">
+                                💾 Download
+                            </a>
+                            <button onclick="deleteFile('{{ file }}')" class="button danger" style="font-size: 0.8em; padding: 8px 15px;">
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <div style="margin-top: 40px;">
+                <button onclick="clearGallery()" class="button danger">
+                    🗑️ Clear All Files
+                </button>
+            </div>
+        {% else %}
+            <div style="margin-top: 50px;">
+                <p style="font-size: 1.3em; opacity: 0.7; margin-bottom: 30px;">
+                    📷 No photos or videos yet
+                </p>
+                <p style="opacity: 0.6; margin-bottom: 40px;">
+                    Take some selfies or record interviews to see them here!
+                </p>
+            </div>
+        {% endif %}
     </div>
-</div>
-{% endblock %}
 
-{% block scripts %}
-<script>
-const galleryFiles = {{ files|tojson }};
+    <!-- Lightbox for viewing images -->
+    <div id="lightbox" class="hidden" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px;">
+        <div style="position: relative; max-width: 90%; max-height: 90%;">
+            <img id="lightbox-image" style="max-width: 100%; max-height: 100%; border-radius: 10px;">
+            <button onclick="closeLightbox()" style="position: absolute; top: -10px; right: -10px; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 2em; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; backdrop-filter: blur(10px);">
+                ×
+            </button>
+        </div>
+    </div>
 
-function openLightbox(src, type) {
-    if (type === 'image') {
-        const lightbox = document.getElementById('lightbox');
-        const lightboxImage = document.getElementById('lightbox-image');
-        
-        lightboxImage.src = src;
-        lightbox.classList.remove('hidden');
-    }
-}
+    <script>
+        const galleryFiles = {{ files|tojson }};
 
-function closeLightbox() {
-    document.getElementById('lightbox').classList.add('hidden');
-}
-
-// Close lightbox on escape key or click outside
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeLightbox();
-    }
-});
-
-document.getElementById('lightbox').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeLightbox();
-    }
-});
-
-function downloadAllFiles() {
-    console.log('Starting download of all files...');
-    window.location.href = '/api/download_all';
-}
-
-function deleteFile(filename) {
-    console.log('Attempting to delete file:', filename);
-    if (confirm('Are you sure you want to delete this file?')) {
-        const button = event.target;
-        const originalText = button.innerHTML;
-        button.innerHTML = '🗑️ Deleting...';
-        button.disabled = true;
-
-        // Log the full URL we're sending the request to
-        const url = `/api/delete_file/${encodeURIComponent(filename)}`;
-        console.log('Sending DELETE request to:', url);
-
-        fetch(url, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Origin': window.location.origin
-            },
-            mode: 'cors',
-            credentials: 'same-origin'
-        })
-        .then(response => {
-            console.log('Response status:', response.status);
-            console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-            if (!response.ok) {
-                return response.json().then(data => {
-                    throw new Error(data.error || `HTTP error! status: ${response.status}`);
-                });
+        function openLightbox(src, type) {
+            if (type === 'image') {
+                const lightbox = document.getElementById('lightbox');
+                const lightboxImage = document.getElementById('lightbox-image');
+                
+                lightboxImage.src = src;
+                lightbox.classList.remove('hidden');
             }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Delete response:', data);
-            if (data.success) {
-                // Remove the gallery item with animation
-                const galleryItem = button.closest('.gallery-item');
-                galleryItem.style.transition = 'all 0.3s ease-out';
-                galleryItem.style.opacity = '0';
-                galleryItem.style.transform = 'scale(0.8)';
-                setTimeout(() => {
-                    galleryItem.remove();
-                    // If no items left, reload to show empty state
-                    if (document.querySelectorAll('.gallery-item').length === 0) {
-                        location.reload();
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.add('hidden');
+        }
+
+        // Close lightbox on escape key or click outside
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeLightbox();
+            }
+        });
+
+        document.getElementById('lightbox').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeLightbox();
+            }
+        });
+
+        function downloadAllFiles() {
+            console.log('Starting download of all files...');
+            window.location.href = '/api/download_all';
+        }
+
+        function deleteFile(filename) {
+            console.log('Attempting to delete file:', filename);
+            if (confirm('Are you sure you want to delete this file?')) {
+                const button = event.target;
+                const originalText = button.innerHTML;
+                button.innerHTML = '🗑️ Deleting...';
+                button.disabled = true;
+
+                fetch(`/api/delete_file/${encodeURIComponent(filename)}`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove the gallery item with animation
+                        const galleryItem = button.closest('.gallery-item');
+                        galleryItem.style.transition = 'all 0.3s ease-out';
+                        galleryItem.style.opacity = '0';
+                        galleryItem.style.transform = 'scale(0.8)';
+                        setTimeout(() => {
+                            galleryItem.remove();
+                            // If no items left, reload to show empty state
+                            if (document.querySelectorAll('.gallery-item').length === 0) {
+                                location.reload();
+                            }
+                        }, 300);
+                    } else {
+                        throw new Error(data.error || 'Unknown error');
                     }
-                }, 300);
-            } else {
-                throw new Error(data.error || 'Unknown error');
-            }
-        })
-        .catch(error => {
-            console.error('Delete error:', error);
-            button.innerHTML = originalText;
-            button.disabled = false;
-            alert('Error deleting file: ' + error.message);
-        });
-    }
-}
-
-function clearGallery() {
-    console.log('Attempting to clear gallery...');
-    if (confirm('Are you sure you want to delete ALL files? This cannot be undone!')) {
-        const button = event.target;
-        const originalText = button.innerHTML;
-        button.innerHTML = '🗑️ Clearing...';
-        button.disabled = true;
-
-        console.log('Sending POST request to /api/clear_gallery');
-
-        fetch('/api/clear_gallery', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Origin': window.location.origin
-            },
-            mode: 'cors',
-            credentials: 'same-origin'
-        })
-        .then(response => {
-            console.log('Response status:', response.status);
-            console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-            if (!response.ok) {
-                return response.json().then(data => {
-                    throw new Error(data.error || `HTTP error! status: ${response.status}`);
+                })
+                .catch(error => {
+                    console.error('Delete error:', error);
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    alert('Error deleting file: ' + error.message);
                 });
             }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Clear gallery response:', data);
-            if (data.success) {
-                // Fade out all gallery items
-                const galleryItems = document.querySelectorAll('.gallery-item');
-                galleryItems.forEach(item => {
-                    item.style.transition = 'all 0.3s ease-out';
-                    item.style.opacity = '0';
-                    item.style.transform = 'scale(0.8)';
+        }
+
+        function clearGallery() {
+            console.log('Attempting to clear gallery...');
+            if (confirm('Are you sure you want to delete ALL files? This cannot be undone!')) {
+                const button = event.target;
+                const originalText = button.innerHTML;
+                button.innerHTML = '🗑️ Clearing...';
+                button.disabled = true;
+
+                fetch('/api/clear_gallery', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Fade out all gallery items
+                        const galleryItems = document.querySelectorAll('.gallery-item');
+                        galleryItems.forEach(item => {
+                            item.style.transition = 'all 0.3s ease-out';
+                            item.style.opacity = '0';
+                            item.style.transform = 'scale(0.8)';
+                        });
+                        // Reload after animation
+                        setTimeout(() => {
+                            location.reload();
+                        }, 300);
+                    } else {
+                        throw new Error(data.error || 'Unknown error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Clear gallery error:', error);
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    alert('Error clearing gallery: ' + error.message);
                 });
-                // Reload after animation
-                setTimeout(() => {
-                    location.reload();
-                }, 300);
-            } else {
-                throw new Error(data.error || 'Unknown error');
             }
-        })
-        .catch(error => {
-            console.error('Clear gallery error:', error);
-            button.innerHTML = originalText;
-            button.disabled = false;
-            alert('Error clearing gallery: ' + error.message);
-        });
-    }
-}
-</script>
-{% endblock %}
+        }
+    </script>
+</body>
+</html>

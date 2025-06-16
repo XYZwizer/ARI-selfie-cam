@@ -43,13 +43,20 @@ eventSource.onmessage = function(event) {
         if (data.type === 'new_prompt') {
             // Update the question display
             document.getElementById('interview-question').textContent = data.data.prompt;
-            
-            // Auto-start if requested and not already recording
-            if (data.data.auto_start && !recording) {
-                showMessage('New interview question received! Starting recording...', 'info');
-                setTimeout(() => {
-                    startInterview();
-                }, 2000);
+            showMessage('New interview question received!', 'info');
+        }
+        else if (data.type === 'start_interview') {
+            // Remote start command from admin
+            if (!recording) {
+                showMessage('Starting interview remotely...', 'info');
+                startInterview();
+            }
+        }
+        else if (data.type === 'stop_interview') {
+            // Remote stop command from admin
+            if (recording) {
+                showMessage('Stopping interview remotely...', 'info');
+                stopInterview();
             }
         }
     } catch (e) {
@@ -78,12 +85,6 @@ async function loadPrompt() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-    // Reset the interview trigger so it doesn't immediately start again
-    fetch('/api/interview_trigger', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reset: true })
-    });
     loadPrompt();
 });
 
