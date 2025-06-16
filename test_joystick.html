@@ -2,17 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Minimal ARI Joystick Debug</title>
+  <title>ROS Joystick Test</title>
   <style>
     .joystick-area {
       width: 120px;
       height: 120px;
-      background: #ddd;
+      background: #eee;
       border-radius: 50%;
       position: relative;
-      border: 2px solid #333;
-      margin: 50px auto;
+      border: 3px solid #667eea;
+      user-select: none;
     }
+
     .joystick-knob {
       width: 40px;
       height: 40px;
@@ -22,115 +23,124 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      cursor: grab;
     }
-    #debug {
-      text-align: center;
+
+    #status, #debug {
       font-family: monospace;
-      margin-top: 10px;
+      margin: 5px;
     }
   </style>
 </head>
 <body>
 
+<h3 id="status">Connecting...</h3>
+<div id="debug">Awaiting joystick input...</div>
+
 <div class="joystick-area" id="joystickArea">
   <div class="joystick-knob" id="joystickKnob"></div>
 </div>
 
-<div id="debug">
-  <div>🔌 <span id="status">Connecting...</span></div>
-  <div>📊 X: <span id="dbgX">0</span> Y: <span id="dbgY">0</span></div>
-  <div>📨 Sent: <span id="dbgSent">0</span></div>
-</div>
-
 <script>
-const rosSocket = new WebSocket('ws://192.168.0.103:9090');
-const statusEl = document.getElementById('status');
-const dbgX = document.getElementById('dbgX');
-const dbgY = document.getElementById('dbgY');
-const dbgSent = document.getElementById('dbgSent');
+let ws;
 
-let sentCount = 0;
+function connectWebSocket() {
+  ws = new WebSocket('ws://192.168.0.103:9090');
 
-rosSocket.onopen = () => statusEl.textContent = '✅ Connected';
-rosSocket.onerror = err => statusEl.textContent = '❌ Error';
-rosSocket.onclose = () => statusEl.textContent = '⚠ Closed';
-
-const area = document.getElementById('joystickArea');
-const knob = document.getElementById('joystickKnob');
-const maxDistance = 40;
-
-let isDragging = false;
-
-knob.addEventListener('mousedown', startDrag);
-document.addEventListener('mousemove', drag);
-document.addEventListener('mouseup', endDrag);
-
-knob.addEventListener('touchstart', startDrag);
-document.addEventListener('touchmove', drag);
-document.addEventListener('touchend', endDrag);
-
-function startDrag(e) {
-  isDragging = true;
-  knob.style.transition = 'none';
-  e.preventDefault();
-}
-
-function drag(e) {
-  if (!isDragging) return;
-
-  const rect = area.getBoundingClientRect();
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-  let dx = clientX - rect.left - rect.width / 2;
-  let dy = clientY - rect.top - rect.height / 2;
-
-  const distance = Math.sqrt(dx * dx + dy * dy);
-  if (distance > maxDistance) {
-    const angle = Math.atan2(dy, dx);
-    dx = Math.cos(angle) * maxDistance;
-    dy = Math.sin(angle) * maxDistance;
-  }
-
-  knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-
-  const normX = dx / maxDistance;
-  const normY = -dy / maxDistance;  // Invert Y for up = positive
-
-  dbgX.textContent = normX.toFixed(2);
-  dbgY.textContent = normY.toFixed(2);
-
-  sendCmd(normX, normY);
-}
-
-function endDrag() {
-  if (!isDragging) return;
-  isDragging = false;
-  knob.style.transition = 'all 0.2s ease';
-  knob.style.transform = 'translate(-50%, -50%)';
-  sendCmd(0, 0);
-
-  dbgX.textContent = '0.00';
-  dbgY.textContent = '0.00';
-}
-
-function sendCmd(x, y) {
-  if (rosSocket.readyState !== WebSocket.OPEN) return;
-
-  const msg = {
-    op: "publish",
-    topic: "/rviz_joy_vel",
-    msg: {
-      linear: { x: y, y: 0, z: 0 },
-      angular: { x: 0, y: 0, z: x }
-    }
+  ws.onopen = () => {
+    document.getElementById('status').innerText = '✅ Connected to ROS bridge';
   };
 
-  rosSocket.send(JSON.stringify(msg));
-  sentCount++;
-  dbgSent.textContent = sentCount;
+  ws.onclose = () => {
+    document.getElementById('status').innerText = '❌ Disconnected from ROS bridge';
+  };
+
+  ws.onerror = (err) => {
+    console.error('WebSocket error:', err);
+  };
 }
+
+function sendTwist(linear_x, angular_z) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    const msg = {
+      op: "publish",
+      topic: "/input_joy/cmd_vel",
+      msg: {
+        linear: { x: linear_x, y: 0, z: 0 },
+        angular: { x: 0, y: 0, z: angular_z }
+      }
+    };
+    ws.send(JSON.stringify(msg));
+    document.getElementById('debug').innerText = 
+      `Sent linear.x=${linear_x.toFixed(2)}, angular.z=${angular_z.toFixed(2)}`;
+  }
+}
+
+// Virtual Joystick
+class VirtualJoystick {
+  constructor(container, knob) {
+    this.container = container;
+    this.knob = knob;
+    this.maxDistance = 40;
+    this.centerX = container.clientWidth / 2;
+    this.centerY = container.clientHeight / 2;
+    this.isDragging = false;
+
+    this.knob.addEventListener('mousedown', this.startDrag.bind(this));
+    document.addEventListener('mousemove', this.drag.bind(this));
+    document.addEventListener('mouseup', this.stopDrag.bind(this));
+
+    this.knob.addEventListener('touchstart', this.startDrag.bind(this));
+    document.addEventListener('touchmove', this.drag.bind(this), { passive: false });
+    document.addEventListener('touchend', this.stopDrag.bind(this));
+  }
+
+  startDrag(e) {
+    this.isDragging = true;
+    e.preventDefault();
+  }
+
+  drag(e) {
+    if (!this.isDragging) return;
+
+    let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    let rect = this.container.getBoundingClientRect();
+
+    let x = clientX - rect.left - this.centerX;
+    let y = clientY - rect.top - this.centerY;
+
+    const distance = Math.sqrt(x * x + y * y);
+    if (distance > this.maxDistance) {
+      const angle = Math.atan2(y, x);
+      x = Math.cos(angle) * this.maxDistance;
+      y = Math.sin(angle) * this.maxDistance;
+    }
+
+    this.knob.style.transform = `translate(${x + this.centerX - 20}px, ${y + this.centerY - 20}px)`;
+
+    // Normalize
+    const normX = x / this.maxDistance;
+    const normY = -y / this.maxDistance;
+    sendTwist(normY * 0.5, normX * 0.5); // scale speed
+  }
+
+  stopDrag() {
+    if (!this.isDragging) return;
+    this.isDragging = false;
+    this.knob.style.transform = 'translate(-50%, -50%)';
+    this.knob.style.transition = 'all 0.2s ease-out';
+
+
+    sendTwist(0, 0);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  connectWebSocket();
+  const area = document.getElementById('joystickArea');
+  const knob = document.getElementById('joystickKnob');
+  new VirtualJoystick(area, knob);
+});
 </script>
 
 </body>
