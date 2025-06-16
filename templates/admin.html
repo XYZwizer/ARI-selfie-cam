@@ -419,6 +419,98 @@
             font-weight: bold;
             color: #667eea;
         }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #dc3545;
+            transition: .4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+        }
+
+        input:checked + .slider {
+            background-color: #28a745;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .slider.round {
+            border-radius: 34px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
+
+        .joystick-area.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .joystick-area.disabled .joystick-knob {
+            cursor: not-allowed;
+        }
+
+        .speed-switch .slider {
+            background-color: #ffc107;
+        }
+
+        .speed-switch input:checked + .slider {
+            background-color: #28a745;
+        }
+
+        .speed-switch .slider:before {
+            content: "";
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .chatbot-switch .slider {
+            background-color: #6c757d;
+        }
+
+        .chatbot-switch input:checked + .slider {
+            background-color: #28a745;
+        }
+
+        .chatbot-switch .slider:before {
+            content: "";
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
@@ -442,16 +534,60 @@
                         <span id="batteryCharge">--</span>%
                     </div>
                     <div class="battery-item">
-                        <span class="battery-label">🔌 Connected:</span>
-                        <span id="batteryConnected">--</span>
+                        <span class="battery-label">🔌 Docked:</span>
+                        <span id="batteryDocked">--</span>
+                    </div>
+                    <div class="battery-item">
+                        <span class="battery-label">⚡ Voltage:</span>
+                        <span id="batteryVoltage">--</span>V
+                    </div>
+                    <div class="battery-item">
+                        <span class="battery-label">⚠️ Emergency:</span>
+                        <span id="emergencyState">--</span>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- Joystick Control Section -->
+        <div class="section">
+            <div class="section-title">🎮 Movement Control</div>
+            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 15px; gap: 10px;">
+                <span style="color: #666; font-size: 14px;">Movement Lock:</span>
+                <label class="switch">
+                    <input type="checkbox" id="movementLock">
+                    <span class="slider round"></span>
+                </label>
+                <span id="lockStatus" style="color: #666; font-size: 14px;">🔒 Locked</span>
+                
+                <span style="color: #666; font-size: 14px; margin-left: 15px;">Speed:</span>
+                <label class="switch speed-switch">
+                    <input type="checkbox" id="speedToggle">
+                    <span class="slider round"></span>
+                </label>
+                <span id="speedStatus" style="color: #666; font-size: 14px;">Slow</span>
+            </div>
+            <div class="joystick-container">
+                <div class="joystick-area" id="joystickArea">
+                    <div class="joystick-knob" id="joystickKnob"></div>
+                </div>
+            </div>
+            <div id="joystickStatus" style="text-align: center; margin-top: 10px; font-size: 12px; color: #666;">Disconnected</div>
+        </div>
+
         <!-- Soundboard Section -->
         <div class="section">
-            <div class="section-title">🔊 Soundboard</div>
+            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>🔊 Soundboard</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="color: #666; font-size: 12px;">Chatbot:</span>
+                    <label class="switch chatbot-switch">
+                        <input type="checkbox" id="chatbotToggle">
+                        <span class="slider round"></span>
+                    </label>
+                    <span id="chatbotStatus" style="color: #666; font-size: 12px;">Off</span>
+                </div>
+            </div>
             <div class="soundboard-inputs">
                 <div class="soundboard-row">
                     <input type="text" class="text-input sound-input" id="sound1" placeholder="Sound 1" value="Sound 1">
@@ -516,6 +652,287 @@
     </div>
 
     <script>
+    // IP Constants
+    const ARI_IP = '192.168.0.103';
+    const SLIDESHOW_IP = '192.168.0.133';
+    let ws;
+    let movementEnabled = false;
+    let isFastMode = false;
+    let volumeTimer = null;
+
+    // Speed toggle functionality
+    document.getElementById('speedToggle').addEventListener('change', function(e) {
+        isFastMode = e.target.checked;
+        const speedStatus = document.getElementById('speedStatus');
+        
+        if (isFastMode) {
+            speedStatus.textContent = 'Fast';
+            speedStatus.style.color = '#28a745';
+        } else {
+            speedStatus.textContent = 'Slow';
+            speedStatus.style.color = '#ffc107';
+        }
+    });
+
+    // Chatbot toggle functionality
+    document.getElementById('chatbotToggle').addEventListener('change', function(e) {
+        const isActive = e.target.checked;
+        const chatbotStatus = document.getElementById('chatbotStatus');
+        
+        // Send the boolean to the active_listening topic
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            const msg = {
+                op: "publish",
+                topic: "/active_listening",
+                msg: {
+                    data: isActive
+                }
+            };
+            ws.send(JSON.stringify(msg));
+        }
+        
+        // Update status display
+        if (isActive) {
+            chatbotStatus.textContent = 'On';
+            chatbotStatus.style.color = '#28a745';
+        } else {
+            chatbotStatus.textContent = 'Off';
+            chatbotStatus.style.color = '#6c757d';
+        }
+    });
+
+    // Volume control
+    function checkVolume() {
+        fetch(`http://${ARI_IP}/touch_web_mgr`)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.volume !== undefined) {
+                    const volume = data.volume;
+                    const volumeSlider = document.getElementById('volume');
+                    const volumeValue = document.getElementById('volumeValue');
+                    
+                    // Only update if the slider isn't being dragged
+                    if (!volumeSlider.matches(':active')) {
+                        volumeSlider.value = volume;
+                        volumeValue.textContent = volume;
+                    }
+                }
+            })
+            .catch(error => console.error('Error checking volume:', error));
+    }
+
+    // Set volume
+    function setVolume(value) {
+        fetch(`http://${ARI_IP}/param/volume`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(parseInt(value))
+        })
+        .catch(error => console.error('Error setting volume:', error));
+    }
+
+    // Initialize volume control
+    document.addEventListener('DOMContentLoaded', function() {
+        const volumeSlider = document.getElementById('volume');
+        const volumeValue = document.getElementById('volumeValue');
+        
+        // Start volume check interval
+        volumeTimer = setInterval(checkVolume, 1000);
+        
+        // Update volume value display while sliding
+        volumeSlider.addEventListener('input', function() {
+            volumeValue.textContent = this.value;
+        });
+
+        // Send volume change when slider is released
+        volumeSlider.addEventListener('change', function() {
+            setVolume(this.value);
+        });
+    });
+
+    // Clean up interval when page is unloaded
+    window.addEventListener('beforeunload', function() {
+        if (volumeTimer) {
+            clearInterval(volumeTimer);
+        }
+    });
+
+    // Movement lock functionality
+    document.getElementById('movementLock').addEventListener('change', function(e) {
+        movementEnabled = e.target.checked;
+        const joystickArea = document.getElementById('joystickArea');
+        const lockStatus = document.getElementById('lockStatus');
+        
+        if (movementEnabled) {
+            joystickArea.classList.remove('disabled');
+            lockStatus.textContent = '🔓 Unlocked';
+            lockStatus.style.color = '#28a745';
+        } else {
+            joystickArea.classList.add('disabled');
+            lockStatus.textContent = '🔒 Locked';
+            lockStatus.style.color = '#dc3545';
+            // Send stop command when locking
+            sendTwist(0, 0);
+        }
+    });
+
+    // WebSocket connection
+    function connectWebSocket() {
+        ws = new WebSocket(`ws://${ARI_IP}:9090`);
+
+        ws.onopen = () => {
+            document.getElementById('joystickStatus').innerText = '✅ Connected to ROS bridge';
+        };
+
+        ws.onclose = () => {
+            document.getElementById('joystickStatus').innerText = '❌ Disconnected from ROS bridge';
+        };
+
+        ws.onerror = (err) => {
+            console.error('WebSocket error:', err);
+            document.getElementById('joystickStatus').innerText = '❌ Connection error';
+        };
+    }
+
+    function sendTwist(linear_x, angular_z) {
+        if (!movementEnabled) {
+            return; // Don't send commands if movement is locked
+        }
+        
+        // Apply speed reduction in slow mode
+        if (!isFastMode) {
+            linear_x *= 0.5;
+            angular_z *= 0.5;
+        }
+        
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            const msg = {
+                op: "publish",
+                topic: "/input_joy/cmd_vel",
+                msg: {
+                    linear: { x: linear_x, y: 0, z: 0 },
+                    angular: { x: 0, y: 0, z: angular_z }
+                }
+            };
+            ws.send(JSON.stringify(msg));
+        }
+    }
+
+    // Joystick functionality
+    class VirtualJoystick {
+        constructor(container, knob) {
+            this.container = container;
+            this.knob = knob;
+            this.isDragging = false;
+            this.centerX = 0;
+            this.centerY = 0;
+            this.currentX = 0;
+            this.currentY = 0;
+            this.maxDistance = 40;
+            
+            this.init();
+        }
+        
+        init() {
+            const rect = this.container.getBoundingClientRect();
+            this.centerX = rect.width / 2;
+            this.centerY = rect.height / 2;
+            
+            this.knob.addEventListener('mousedown', this.startDrag.bind(this));
+            this.knob.addEventListener('touchstart', this.startDrag.bind(this));
+            
+            document.addEventListener('mousemove', this.drag.bind(this));
+            document.addEventListener('touchmove', this.drag.bind(this));
+            
+            document.addEventListener('mouseup', this.stopDrag.bind(this));
+            document.addEventListener('touchend', this.stopDrag.bind(this));
+            
+            this.container.addEventListener('click', this.moveToClick.bind(this));
+            this.container.addEventListener('contextmenu', e => e.preventDefault());
+        }
+        
+        startDrag(e) {
+            if (!movementEnabled) {
+                e.preventDefault();
+                return;
+            }
+            this.isDragging = true;
+            this.knob.style.transition = 'none';
+            e.preventDefault();
+        }
+        
+        drag(e) {
+            if (!this.isDragging || !movementEnabled) return;
+            
+            const rect = this.container.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            const x = clientX - rect.left - this.centerX;
+            const y = clientY - rect.top - this.centerY;
+            
+            this.updatePosition(x, y);
+            e.preventDefault();
+        }
+        
+        stopDrag() {
+            if (!this.isDragging) return;
+            this.isDragging = false;
+            this.knob.style.transition = 'all 0.2s ease-out';
+            this.returnToCenter();
+        }
+        
+        moveToClick(e) {
+            if (this.isDragging || !movementEnabled) return;
+            
+            const rect = this.container.getBoundingClientRect();
+            const x = e.clientX - rect.left - this.centerX;
+            const y = e.clientY - rect.top - this.centerY;
+            
+            this.knob.style.transition = 'all 0.2s ease-out';
+            this.updatePosition(x, y);
+            
+            setTimeout(() => this.returnToCenter(), 200);
+        }
+        
+        updatePosition(x, y) {
+            if (!movementEnabled) return;
+            
+            const distance = Math.sqrt(x * x + y * y);
+            
+            if (distance > this.maxDistance) {
+                const angle = Math.atan2(y, x);
+                x = Math.cos(angle) * this.maxDistance;
+                y = Math.sin(angle) * this.maxDistance;
+            }
+            
+            this.currentX = x;
+            this.currentY = y;
+            
+            this.knob.style.transform = `translate(${x - 20}px, ${y - 20}px)`;
+            
+            const normalizedX = x / this.maxDistance;
+            const normalizedY = -y / this.maxDistance;
+            
+            sendTwist(normalizedX, normalizedY);
+        }
+        
+        returnToCenter() {
+            this.currentX = 0;
+            this.currentY = 0;
+            this.knob.style.transform = 'translate(-50%, -50%)';
+            sendTwist(0, 0);
+        }
+    }
+
+    // Initialize joystick when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        const joystickArea = document.getElementById('joystickArea');
+        const joystickKnob = document.getElementById('joystickKnob');
+        new VirtualJoystick(joystickArea, joystickKnob);
+        connectWebSocket();
+    });
+
     function sendAriTTS(text) {
         fetch('/api/admin/ari_speak', {
             method: 'POST',
@@ -644,58 +1061,56 @@
         });
     }
 
-    // Volume control
-    const volumeSlider = document.getElementById('volume');
-    const volumeValue = document.getElementById('volumeValue');
-    
-    // Get current volume
-    function getCurrentVolume() {
-        fetch('http://ari-0c/parameter/volume')
-            .then(response => response.json())
-            .then(data => {
-                const currentVolume = data.value;
-                volumeSlider.value = currentVolume;
-                volumeValue.textContent = currentVolume;
-            })
-            .catch(error => console.error('Error fetching volume:', error));
-    }
-
-    // Set volume
-    function setVolume(value) {
-        fetch('http://ari-0c/parameter/volume', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ value: parseInt(value) })
-        })
-        .catch(error => console.error('Error setting volume:', error));
-    }
-    
-    volumeSlider.addEventListener('input', function() {
-        volumeValue.textContent = this.value;
-    });
-
-    volumeSlider.addEventListener('change', function() {
-        setVolume(this.value);
-    });
-
-    // Get initial volume when page loads
-    getCurrentVolume();
-
     // Battery status
     function updateBatteryStatus() {
-        fetch('http://ari-Xc/topic/power_diagnostic')
+        fetch(`http://${ARI_IP}/topic/power_diagnostic`)
             .then(response => response.json())
             .then(data => {
-                const power = data.msg;
-                document.getElementById('batteryCharge').textContent = Math.round(power.charge);
-                document.getElementById('batteryConnected').textContent = power.is_connected ? 'Yes' : 'No';
+                if (data && data.msg) {
+                    const power = data.msg;
+                    
+                    // Update battery level
+                    const batteryLevel = power.charge;
+                    document.getElementById('batteryCharge').textContent = Math.round(batteryLevel);
+                    
+                    // Update battery color based on level
+                    const batteryCharge = document.getElementById('batteryCharge');
+                    if (batteryLevel >= 50) {
+                        batteryCharge.style.color = '#4a8e4c'; // Green
+                    } else if (batteryLevel > 19) {
+                        batteryCharge.style.color = '#ffc400'; // Yellow
+                    } else {
+                        batteryCharge.style.color = '#bf360c'; // Red
+                    }
+
+                    // Update voltage
+                    document.getElementById('batteryVoltage').textContent = power.input.toFixed(1);
+
+                    // Update dock status
+                    document.getElementById('batteryDocked').textContent = 
+                        power.dock > 0 ? 'Yes' : 'No';
+
+                    // Update emergency status
+                    document.getElementById('emergencyState').textContent = 
+                        power.is_emergency ? 'Yes' : 'No';
+                    
+                    // Update emergency state color
+                    const emergencyState = document.getElementById('emergencyState');
+                    emergencyState.style.color = power.is_emergency ? '#dc3545' : '#28a745';
+                }
             })
-            .catch(error => console.error('Error fetching battery status:', error));
+            .catch(error => {
+                console.error('Error fetching power diagnostic:', error);
+                document.getElementById('batteryCharge').textContent = '--';
+                document.getElementById('batteryVoltage').textContent = '--';
+                document.getElementById('batteryDocked').textContent = '--';
+                document.getElementById('emergencyState').textContent = '--';
+            });
     }
 
-    // Update battery status every 30 seconds
+    // Update battery status every 5 seconds
     updateBatteryStatus();
-    setInterval(updateBatteryStatus, 30000);
+    setInterval(updateBatteryStatus, 5000);
     </script>
 </body>
 </html>
