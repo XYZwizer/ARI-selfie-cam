@@ -63,7 +63,7 @@ function sendTwist(linear_x, angular_z) {
   if (ws && ws.readyState === WebSocket.OPEN) {
     const msg = {
       op: "publish",
-      topic: "/input_joy/cmd_vel",
+      topic: "/rviz_joy_vel",
       msg: {
         linear: { x: linear_x, y: 0, z: 0 },
         angular: { x: 0, y: 0, z: angular_z }

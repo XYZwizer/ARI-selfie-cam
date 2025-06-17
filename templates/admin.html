@@ -653,7 +653,7 @@
 
     <script>
     // IP Constants
-    const ARI_IP = '192.168.0.103';
+    const ARI_IP = 'ari-20c';
     const SLIDESHOW_IP = '192.168.0.133';
     let ws;
     let movementEnabled = false;
@@ -726,7 +726,7 @@
         fetch(`http://${ARI_IP}/param/volume`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(parseInt(value))
+            body: JSON.stringify(parseInt(value)) 
         })
         .catch(error => console.error('Error setting volume:', error));
     }
@@ -808,7 +808,7 @@
         if (ws && ws.readyState === WebSocket.OPEN) {
             const msg = {
                 op: "publish",
-                topic: "/input_joy/cmd_vel",
+                topic: "/rviz_joy_vel",
                 msg: {
                     linear: { x: linear_x, y: 0, z: 0 },
                     angular: { x: 0, y: 0, z: angular_z }
@@ -1111,6 +1111,42 @@
     // Update battery status every 5 seconds
     updateBatteryStatus();
     setInterval(updateBatteryStatus, 5000);
+
+    // Function to send the message to the ROS bridge
+    function sendWebGoToMessage() {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            const msg = {
+                op: "publish",
+                topic: "/web_go_to",
+                msg: { "type": 4, "value": "list_our_pages" }
+            };
+            ws.send(JSON.stringify(msg));
+        }
+    }
+
+    // Add a small floating button to the bottom right corner
+    const floatingButton = document.createElement('button');
+    floatingButton.innerHTML = '🔗';
+    floatingButton.style.position = 'fixed';
+    floatingButton.style.bottom = '20px';
+    floatingButton.style.right = '20px';
+    floatingButton.style.padding = '10px';
+    floatingButton.style.borderRadius = '50%';
+    floatingButton.style.backgroundColor = '#667eea';
+    floatingButton.style.color = 'white';
+    floatingButton.style.border = 'none';
+    floatingButton.style.cursor = 'pointer';
+    floatingButton.style.fontSize = '20px';
+    floatingButton.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+    floatingButton.style.transition = 'transform 0.2s';
+    floatingButton.addEventListener('click', sendWebGoToMessage);
+    floatingButton.addEventListener('mouseenter', () => {
+        floatingButton.style.transform = 'scale(1.1)';
+    });
+    floatingButton.addEventListener('mouseleave', () => {
+        floatingButton.style.transform = 'scale(1)';
+    });
+    document.body.appendChild(floatingButton);
     </script>
 </body>
 </html>
