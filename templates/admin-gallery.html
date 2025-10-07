@@ -110,10 +110,10 @@
     </style>
 </head>
 <body>
-    <a href="/admin" class="button back-button">🏠 Admin</a>
+    <a href="/admin" class="button back-button">Admin</a>
 
     <div class="container">
-        <h1>🖼️ Admin Gallery</h1>
+        <h1>Admin Gallery</h1>
         
         {% if files %}
             <p style="margin-bottom: 30px; opacity: 0.9;">
@@ -122,7 +122,7 @@
             
             <div style="margin-bottom: 20px;">
                 <button onclick="downloadAllFiles()" class="button primary">
-                    💾 Download All Files
+                    Download All Files
                 </button>
             </div>
             
@@ -145,10 +145,10 @@
                         
                         <div style="margin-top: 10px;">
                             <a href="/gallery/{{ file }}" download class="button" style="font-size: 0.8em; padding: 8px 15px;">
-                                💾 Download
+                                Download
                             </a>
                             <button onclick="deleteFile('{{ file }}')" class="button danger" style="font-size: 0.8em; padding: 8px 15px;">
-                                🗑️ Delete
+                                Delete
                             </button>
                         </div>
                     </div>
@@ -157,13 +157,13 @@
             
             <div style="margin-top: 40px;">
                 <button onclick="clearGallery()" class="button danger">
-                    🗑️ Clear All Files
+                    Clear All Files
                 </button>
             </div>
         {% else %}
             <div style="margin-top: 50px;">
                 <p style="font-size: 1.3em; opacity: 0.7; margin-bottom: 30px;">
-                    📷 No photos or videos yet
+                    No photos or videos yet
                 </p>
                 <p style="opacity: 0.6; margin-bottom: 40px;">
                     Take some selfies or record interviews to see them here!
@@ -222,7 +222,7 @@
             if (confirm('Are you sure you want to delete this file?')) {
                 const button = event.target;
                 const originalText = button.innerHTML;
-                button.innerHTML = '🗑️ Deleting...';
+                button.innerHTML = 'Deleting...';
                 button.disabled = true;
 
                 fetch(`/api/delete_file/${encodeURIComponent(filename)}`, {
@@ -261,7 +261,7 @@
             if (confirm('Are you sure you want to delete ALL files? This cannot be undone!')) {
                 const button = event.target;
                 const originalText = button.innerHTML;
-                button.innerHTML = '🗑️ Clearing...';
+                button.innerHTML = 'Clearing...';
                 button.disabled = true;
 
                 fetch('/api/clear_gallery', {

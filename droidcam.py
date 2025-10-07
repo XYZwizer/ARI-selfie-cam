@@ -249,9 +249,9 @@ def send_ari_tts(text, lang_id="en_GB"):
         return None
 
 def send_ari_motion(motion_name):
-    """Send motion command to ARI robot"""
+    """Send motion command to ARI robot using direct HTTP POST to /action/motion_manager"""
     try:
-        url = f"{ARI_BASE_URL}/action/motion_manager"
+        url = f"http://ari-20c/action/motion_manager"
         payload = {"filename": motion_name}
         response = requests.post(url, json=payload, timeout=10)
         return response.json() if response.status_code == 200 else None
@@ -272,7 +272,7 @@ def admin_page():
 @app.route('/selfie')
 def selfie_page():
     """Selfie capture page with countdown"""
-    return render_template('selfie.html')
+    return render_template('selfie.html', droidcam_ip=DROIDCAM_IP)
 
 @app.route('/interview')
 def interview_page():
@@ -433,8 +433,6 @@ def send_to_remote_display(filepath):
 def take_selfie():
     """Capture selfie from DroidCam stream or accept base64 image from browser."""
     try:
-        # Send 'selfie' motion to ARI before taking the photo
-        send_ari_motion('selfie')
         data = request.get_json(silent=True)
         if data and 'image' in data:
             # Handle base64 image from browser

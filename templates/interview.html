@@ -3,10 +3,10 @@
 {% block title %}Interview{% endblock %}
 
 {% block content %}
-<a href="/" class="button back-button">🏠 Home</a>
+<a href="/" class="button back-button">Home</a>
 
 <div class="container">
-    <h1>🎤 Interview</h1>
+    <h1>Interview</h1>
     
     <div class="question-container">
         <div class="question" id="interview-question">
@@ -16,11 +16,11 @@
     
     <div style="margin-top: 30px;">
         <button id="start-btn" class="button primary" onclick="startInterview()">
-            🎬 Start Interview
+            Start Interview
         </button>
         
         <button id="stop-btn" class="button danger hidden" onclick="stopInterview()">
-            ⏹️ Stop Interview
+            Stop Interview
         </button>
     </div>
     
@@ -34,6 +34,66 @@ let recording = false;
 
 // Set up Server-Sent Events connection
 const eventSource = new EventSource('/api/interview_events');
+
+// WebSocket connection for ROS bridge
+let ws = null;
+const ARI_IP = 'ari-20c'; // Replace with your ARI IP if different
+
+function connectWebSocket() {
+    ws = new WebSocket(`ws://${ARI_IP}:9090`);
+
+    ws.onopen = () => {
+        console.log('Connected to ROS bridge');
+    };
+
+    ws.onclose = () => {
+        console.log('Disconnected from ROS bridge');
+        setTimeout(connectWebSocket, 3000);
+    };
+
+    ws.onerror = (err) => {
+        console.error('WebSocket error:', err);
+    };
+}
+
+function sendMotionGoal(motionName, priority = 10) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        const currentTime = Date.now() / 1000;
+        const goalId = `/interview-${Math.floor(Math.random() * 1000)}-${currentTime}`;
+        const msg = {
+            op: "publish",
+            topic: "/play_motion/goal",
+            msg: {
+                header: {
+                    seq: Math.floor(Math.random() * 1000),
+                    stamp: {
+                        secs: Math.floor(currentTime),
+                        nsecs: Math.floor((currentTime % 1) * 1000000000)
+                    },
+                    frame_id: ''
+                },
+                goal_id: {
+                    stamp: {
+                        secs: Math.floor(currentTime),
+                        nsecs: Math.floor((currentTime % 1) * 1000000000)
+                    },
+                    id: goalId
+                },
+                goal: {
+                    motion_name: motionName,
+                    skip_planning: true,
+                    priority: priority
+                }
+            }
+        };
+        console.log('Sending motion goal:', motionName, 'with priority:', priority);
+        ws.send(JSON.stringify(msg));
+    } else {
+        console.error('WebSocket not connected');
+    }
+}
+
+connectWebSocket();
 
 eventSource.onmessage = function(event) {
     try {
@@ -96,7 +156,7 @@ async function startInterview() {
     try {
         status.textContent = 'Starting interview...';
         startBtn.disabled = true;
-        
+        sendMotionGoal('raise_mic', 10); // Send the raise_mic motion
         const response = await fetch('/api/start_interview', {
             method: 'POST',
             headers: {

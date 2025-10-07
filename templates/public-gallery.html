@@ -3,10 +3,10 @@
 {% block title %}Gallery{% endblock %}
 
 {% block content %}
-<a href="/" class="button back-button">🏠 Home</a>
+<a href="/" class="button back-button">Home</a>
 
 <div class="container">
-    <h1>🖼️ Gallery</h1>
+    <h1>Gallery</h1>
     
     {% if files %}
         <p style="margin-bottom: 30px; opacity: 0.9;">
@@ -35,17 +35,17 @@
     {% else %}
         <div style="margin-top: 50px;">
             <p style="font-size: 1.3em; opacity: 0.7; margin-bottom: 30px;">
-                📷 No photos or videos yet
+                No photos or videos yet
             </p>
             <p style="opacity: 0.6; margin-bottom: 40px;">
                 Take some selfies or record interviews to see them here!
             </p>
             <div>
                 <a href="/selfie" class="button primary">
-                    📸 Take a Selfie
+                    Take a Selfie
                 </a>
                 <a href="/interview" class="button primary">
-                    🎤 Start Interview
+                    Start Interview
                 </a>
             </div>
         </div>
