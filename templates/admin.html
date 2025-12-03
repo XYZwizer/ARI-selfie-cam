@@ -653,7 +653,7 @@
 
     <script>
     // IP Constants
-    const ARI_IP = 'ari-20c';
+    const ARI_IP = '192.168.0.100';
     const SLIDESHOW_IP = '192.168.0.133';
     let ws;
     let movementEnabled = false;
@@ -983,7 +983,9 @@
     async function remoteStartInterview() {
         const status = document.getElementById('interviewStatus');
         status.textContent = 'Sending start command...';
-        
+	// sendMotionGoal('raise_mic', 10);
+       	// sendAriMotion("raise_mic") 
+	sendAriMotion("raise_mic",10)
         try {
             const response = await fetch('/api/interview_events', {
                 method: 'POST',
@@ -1004,7 +1006,7 @@
     async function remoteStopInterview() {
         const status = document.getElementById('interviewStatus');
         status.textContent = 'Sending stop command...';
-        
+        sendAriMotion("alive_1",20)
         try {
             const response = await fetch('/api/interview_events', {
                 method: 'POST',
@@ -1053,11 +1055,11 @@
     // Load settings when page loads
     document.addEventListener('DOMContentLoaded', loadSoundboardSettings);
 
-    function sendAriMotion(motion) {
+    function sendAriMotion(motion,priority) {
         fetch('/api/admin/ari_motion', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ motion: motion })
+            body: JSON.stringify({ motion: motion,priority: priority })
         });
     }
 

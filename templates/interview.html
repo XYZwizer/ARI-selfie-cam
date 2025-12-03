@@ -116,6 +116,8 @@ eventSource.onmessage = function(event) {
             // Remote stop command from admin
             if (recording) {
                 showMessage('Stopping interview remotely...', 'info');
+                // Play an alive/finish motion before stopping
+                try { sendMotionGoal('alive_1', 10); } catch (e) { console.error('Failed to send alive_1 motion:', e); }
                 stopInterview();
             }
         }
@@ -145,6 +147,7 @@ async function loadPrompt() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+    
     loadPrompt();
 });
 
@@ -197,6 +200,13 @@ async function stopInterview() {
     try {
         status.textContent = 'Stopping interview...';
         stopBtn.disabled = true;
+
+        // Play a short alive/final motion when stopping the interview
+        try {
+            sendMotionGoal('alive_1', 10);
+        } catch (e) {
+            console.error('Error sending alive_1 motion on stop:', e);
+        }
         
         const response = await fetch('/api/stop_interview', {
             method: 'POST',

@@ -25,7 +25,7 @@ app = Flask(__name__)
 # Configuration
 GALLERY_PATH = 'static/gallery'
 INTERVIEW_DURATION = 300  # 5 minutes max
-ARI_BASE_URL = 'http://ari-20c'  # Default ARI robot URL - change as needed
+ARI_BASE_URL = 'http://192.168.0.100'  # Default ARI robot URL - change as needed
 
 # Ensure gallery directory exists
 os.makedirs(GALLERY_PATH, exist_ok=True)
@@ -169,11 +169,11 @@ def send_ari_tts(text, lang_id="en_GB"):
         print(f"Error sending TTS to ARI: {e}")
         return None
 
-def send_ari_motion(motion_name):
+def send_ari_motion(motion_name,priority=0):
     """Send motion command to ARI robot"""
     try:
         url = f"{ARI_BASE_URL}/action/motion_manager"
-        payload = {"filename": motion_name}
+        payload = {"filename": motion_name,"priority": priority}
         response = requests.post(url, json=payload, timeout=10)
         return response.json() if response.status_code == 200 else None
     except Exception as e:
@@ -259,11 +259,12 @@ def admin_ari_motion():
     try:
         data = request.get_json()
         motion = data.get('motion', '')
-        
+        priority = data.get('priority',0)
+ 
         if not motion:
             return jsonify({'error': 'No motion specified'}), 400
         
-        result = send_ari_motion(motion)
+        result = send_ari_motion(motion,priority)
         if result:
             return jsonify({'success': True, 'result': result})
         else:
@@ -591,10 +592,13 @@ if __name__ == '__main__':
     # Set up signal handlers for clean shutdown
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
+
     
     try:
         # Run the Flask app
         app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+        #send_ari_tts("hello")
+
     finally:
         # Cleanup on exit
         camera_manager.cleanup_csi_camera()

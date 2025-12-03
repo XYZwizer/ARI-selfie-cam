@@ -251,7 +251,7 @@ def send_ari_tts(text, lang_id="en_GB"):
 def send_ari_motion(motion_name):
     """Send motion command to ARI robot using direct HTTP POST to /action/motion_manager"""
     try:
-        url = f"http://ari-20c/action/motion_manager"
+        url = f"{ARI_BASE_URL}/action/motion_manager"
         payload = {"filename": motion_name}
         response = requests.post(url, json=payload, timeout=10)
         return response.json() if response.status_code == 200 else None
