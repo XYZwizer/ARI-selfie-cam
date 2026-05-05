@@ -1,0 +1,137 @@
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+body {
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	min-height: 100vh;
+	padding: 10px;
+	color: #fff;
+}
+
+.container {
+	max-width: 420px;
+	margin: 0 auto;
+	background: rgba(255, 255, 255, 0.95);
+	border-radius: 20px;
+	padding: 15px; /* Reduced from 20px */
+	box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); 
+	color: #333;
+}
+
+.remote-preview img {
+	max-width: 100%;
+	height: auto;
+}
+
+.header {
+	text-align: center;
+	margin-bottom: 20px; /* Reduced from 25px */
+	padding-bottom: 10px; /* Reduced from 15px */
+	border-bottom: 2px solid #667eea;
+}
+
+.header p {
+	color: #666;
+	font-size: 14px;
+}
+
+
+.section {
+	margin-bottom: 20px; /* Reduced from 25px */
+	background: #f8f9fa;
+	border-radius: 15px;
+	padding: 15px; /* Reduced from 20px */
+	border: 2px solid #e9ecef;
+}
+
+.section-title {
+	color: #667eea;
+	font-size: 18px;
+	font-weight: bold;
+	margin-bottom: 15px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.section-title::before {
+	content: '';
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	background: #667eea;
+}
+
+/* Joystick Control Section */
+.joystick-container {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 15px;
+}
+
+.joystick-area {
+	width: 120px;
+	height: 120px;
+	background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+	border-radius: 50%;
+	position: relative;
+	border: 3px solid #667eea;
+	box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.1);
+	cursor: pointer;
+	user-select: none;
+}
+
+.joystick-knob {
+	width: 40px;
+	height: 40px;
+	background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
+	border-radius: 50%;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	cursor: grab;
+	border: 2px solid #fff;
+	box-shadow: 0 3px 8px rgba(255, 140, 66, 0.4);
+	transition: box-shadow 0.2s;
+}
+
+.joystick-knob:active {
+	cursor: grabbing;
+	box-shadow: 0 4px 12px rgba(255, 140, 66, 0.6);
+}
+
+/* ARI Control Section */
+.text-input {
+	width: 100%;
+	padding: 12px;
+	border: 2px solid #ddd;
+	border-radius: 10px;
+	font-size: 16px;
+	margin-bottom: 15px;
+	transition: border-color 0.3s;
+}
+
+.text-input:focus {
+	outline: none;
+	border-color: #667eea;
+}
+
+.send-btn {
+	width: 100%;
+	padding: 12px;
+	background: linear-gradient(45deg, #667eea, #764ba2);
+	color: white;
+	border: none;
+	border-radius: 10px;
+	font-size: 16px;
+	font-weight: bold;
+	cursor: pointer;
+	transition: transform 0.2s;
+	margin-bottom: 15px;
+}
