@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Admin Control - Camera & ARI Robot</title>
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+	<div class="container">
+		<div class="header">
+			<h1>🤖 ARI Robot Control</h1>
+			<p>Advanced camera & motion control interface</p>
+		</div>
+
+		<!-- Joystick Control Section -->
+		<div class="section">
+			<div class="section-title">🕹️ Movement Control</div>
+			<div class="joystick-container" id="movement-joystick">
+				<div class="joystick-area" >
+					<div class="joystick-knob"></div>
+				</div>
+			</div>
+		</div>
+
+		<!-- ARI Control Section -->
+		<div class="section">
+			<div class="section-title">💬 Voice Command</div>
+			<input type="text" class="text-input" id="textInput" placeholder="Enter command for ARI...">
+			<button class="send-btn" onclick="sendCommand()">Send to ARI</button>
+			
+			<div class="motion-buttons">
+				<button class="motion-btn" onclick="performMotion('wave')">👋 Wave</button>
+				<button class="motion-btn" onclick="performMotion('nod')">👤 Nod</button>
+				<button class="motion-btn" onclick="performMotion('look_around')">👀 Look Around</button>
+				<button class="motion-btn" onclick="performMotion('gesture')">✋ Gesture</button>
+			</div>
+		</div>
+
+		<!-- Camera Preview Section -->
+		<div class="section">
+			<div class="section-title">📹 Camera Preview</div>
+			<div class="camera-preview">
+				<div class="preview-container">
+					<div class="preview-placeholder" id="previewPlaceholder">
+						Camera feed will appear here
+					</div>
+					<img class="preview-feed" id="previewFeed" style="display: none;">
+				</div>
+				<div class="preview-controls">
+					<button class="preview-btn start-preview" onclick="startPreview()">Start Preview</button>
+					<button class="preview-btn stop-preview" onclick="stopPreview()">Stop Preview</button>
+				</div>
+			</div>
+		</div>
+
+	</div>
+
+	<script>
+		// Joystick functionality
+		class VirtualJoystick {
+			constructor(container) {
+				this.container = container.children[0];
+				this.knob = container.children[0].children[0];
+				this.isDragging = false;
+				this.centerX = 0;
+				this.centerY = 0;
+				this.currentX = 0;
+				this.currentY = 0;
+				this.maxDistance = 40; // Maximum distance from center
+				
+				this.init();
+			}
+			
+			init() {
+				// Calculate center position
+				const rect = this.container.getBoundingClientRect();
+				this.centerX = rect.width / 2;
+				this.centerY = rect.height / 2;
+				
+				// Event listeners
+				this.knob.addEventListener('mousedown', this.startDrag.bind(this));
+				this.knob.addEventListener('touchstart', this.startDrag.bind(this));
+				
+				document.addEventListener('mousemove', this.drag.bind(this));
+				document.addEventListener('touchmove', this.drag.bind(this));
+				
+				document.addEventListener('mouseup', this.stopDrag.bind(this));
+				document.addEventListener('touchend', this.stopDrag.bind(this));
+				
+				// Container click to move knob
+				this.container.addEventListener('click', this.moveToClick.bind(this));
+				
+				// Prevent context menu
+				this.container.addEventListener('contextmenu', e => e.preventDefault());
+			}
+			
+			startDrag(e) {
+				this.isDragging = true;
+				this.knob.style.transition = 'none';
+				e.preventDefault();
+			}
+			
+			drag(e) {
+				if (!this.isDragging) return;
+				
+				const rect = this.container.getBoundingClientRect();
+				const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+				const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+				
+				const x = clientX - rect.left - this.centerX;
+				const y = clientY - rect.top - this.centerY;
+				
+				this.updatePosition(
+						this.normilize(x),
+						this.normilize(y)
+						);
+				e.preventDefault();
+			}
+			
+			stopDrag() {
+				if (!this.isDragging) return;
+				this.isDragging = false;
+				this.knob.style.transition = 'all 0.2s ease-out';
+				this.updatePosition(0,0);
+			}
+			
+			moveToClick(e) {
+				if (this.isDragging) return;
+				
+				const rect = this.container.getBoundingClientRect();
+				const x = e.clientX - rect.left - this.centerX;
+				const y = e.clientY - rect.top - this.centerY;
+				
+				this.knob.style.transition = 'all 0.15s ease-out';
+				this.updatePosition(x, y);
+				
+				// Return to center after a short delay
+				setTimeout(() => this.updatePosition(0,0), 200);
+			}
+
+			normilize(v) {
+				const normalizedV = v / this.maxDistance;
+				return normalizedV;
+			}
+			
+			updatePosition(x, y) {
+
+				//limit by max
+				const distance = Math.sqrt(x * x + y * y);	
+				if (distance > 1) {
+					const angle = Math.atan2(y, x);
+					x = Math.cos(angle);
+					y = Math.sin(angle);
+				}
+				
+				this.currentX = x;
+				this.currentY = y;
+			
+				const half_max = this.maxDistance / 2.0;
+				this.knob.style.transform = `translate(${(x * this.maxDistance) - half_max}px, ${(y * this.maxDistance) - half_max}px)`;
+				
+				// Send joystick data to server (removed value display)
+				this.sendJoystickData(x, -y);// Invert Y for intuitive up/down
+			}
+			
+			
+			sendJoystickData(x, y) {
+				// Send data to your Flask server
+				fetch('/api/joystick', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						x: x,
+						y: y,
+						timestamp: Date.now()
+					})
+				}).catch(err => console.log('Joystick data send failed:', err));
+			}
+		}
+
+		var movemnt_joystick = null; 
+		
+		// Initialize joystick when page loads
+		document.addEventListener('DOMContentLoaded', function() {
+			const movement_joystick_container = document.getElementById('movement-joystick');
+			movemnt_joystick = new VirtualJoystick(movement_joystick_container);
+		});
+
+		
+		
+		// Existing functions (you can adapt these to your Flask routes)
+		function sendCommand() {
+			const text = document.getElementById('textInput').value;
+			if (text.trim()) {
+				fetch('/api/command', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ command: text })
+				});
+				document.getElementById('textInput').value = '';
+			}
+		}
+		
+		function performMotion(motionType) {
+			fetch('/api/motion', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ motion: motionType })
+			});
+		}
+		
+		function startPreview() {
+			fetch('/api/camera/start', { method: 'POST' });
+		}
+		
+		function stopPreview() {
+			fetch('/api/camera/stop', { method: 'POST' });
+		}
+		
+		function navigateTo(page) {
+			window.location.href = `/${page}`;
+		}
+
+		// Allow Enter key to send command
+		document.addEventListener('DOMContentLoaded', function() {
+			document.getElementById('textInput').addEventListener('keypress', function(e) {
+				if (e.key === 'Enter') {
+					sendCommand();
+				}
+			});
+		});
+		
+		var gamepad_poll_intervl = null;
+		var gamepad = null;
+
+		window.addEventListener("gamepadconnected", (event) => {
+			if (gamepad != null) return;
+			gamepad = event.gamepad;
+			gamepad_poll_intervl = setInterval(function() {
+				movemnt_joystick.updatePosition(gamepad.axes[0],gamepad.axes[1]);
+				console.log(gamepad.axes[0],gamepad.axes[1]); 
+			}, 30);
+		});
+		window.addEventListener("gamepaddisconnected", (event) => {
+			if (gamepad == event.gamepad) {
+				gamepad = null;
+			};
+			clearInterval(gamepad_poll_intervl);
+		});
+	</script>
+</body>
+</html>
