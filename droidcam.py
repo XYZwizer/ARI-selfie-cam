@@ -268,6 +268,14 @@ def admin_page():
     """Admin/Operator control page"""
     return render_template('admin.html')
 
+@app.route('/gamepad_controll')
+def gamepad_controll():
+    return render_template('gamepad_controll.html')
+
+@app.route('/style.css')
+def style():
+    return send_file('static/style.css')
+
 @app.route('/selfie')
 def selfie_page():
     """Selfie capture page with countdown"""
