@@ -2,3 +2,4 @@
 venv/
 static/gallery
 secret.py
+.venv/

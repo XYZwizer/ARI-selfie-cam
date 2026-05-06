@@ -47,36 +47,6 @@
             background: #000;
         }
         
-        .countdown-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 10;
-        }
-        
-        .countdown-text {
-            font-size: 8em;
-            font-weight: bold;
-            color: #fff;
-            text-shadow: 
-                0 0 20px rgba(255, 255, 255, 0.8),
-                0 0 40px rgba(255, 255, 255, 0.6),
-                0 0 60px rgba(255, 255, 255, 0.4);
-            animation: pulse 1s ease-in-out;
-        }
-        
-        @keyframes pulse {
-            0% { transform: scale(0.8); opacity: 0.5; }
-            50% { transform: scale(1.2); opacity: 1; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        
         .controls {
             margin: 30px 0;
         }
@@ -110,43 +80,6 @@
             background: linear-gradient(45deg, #4ecdc4, #44a08d);
         }
         
-        .status {
-            margin: 20px 0;
-            padding: 15px;
-            border-radius: 10px;
-            min-height: 20px;
-        }
-        
-        .status.success {
-            background: rgba(76, 175, 80, 0.2);
-            border: 2px solid #4caf50;
-        }
-        
-        .status.error {
-            background: rgba(244, 67, 54, 0.2);
-            border: 2px solid #f44336;
-        }
-        
-        .status.info {
-            background: rgba(33, 150, 243, 0.2);
-            border: 2px solid #2196f3;
-        }
-        
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid #ffffff;
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spin 1s ease-in-out infinite;
-            margin-right: 10px;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
         .back-btn {
             position: absolute;
             top: 20px;
@@ -165,165 +98,275 @@
             background: rgba(255, 255, 255, 0.3);
             transform: translateY(-1px);
         }
+
+        .status {
+            margin: 20px 0;
+            font-size: 1.1em;
+            opacity: 0.8;
+        }
+
+        .ros-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+        }
+
+        .instructions-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            background: #f8f9fa;
+            color: #222;
+            border-radius: 10px;
+            margin: 18px auto 0 auto;
+            max-width: 640px;
+            min-width: 320px;
+            height: 100px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            font-size: 1.05em;
+            padding: 0 18px;
+            overflow: hidden;
+        }
+
+        .instructions-bar img {
+            height: 80px;
+            width: 80px;
+            margin-right: 18px;
+            border-radius: 8px;
+            background: #eee;
+            object-fit: contain;
+        }
+
+        .instructions-bar div {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .instructions-bar div div {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 6px;
+        }
+
+        .instructions-bar div div:last-child {
+            font-size: 1em;
+            line-height: 1.4;
+        }
     </style>
 </head>
 <body>
     <a href="/" class="back-btn">← Back to Menu</a>
+    <div class="ros-status" id="rosStatus">🔄 Connecting to ROS...</div>
     
     <div class="container">
-        <h1>📸 Take a Selfie</h1>
+        <h1>Take a Selfie</h1>
         
-        <div class="camera-container">
-            <img id="videoFeed" src="" alt="Camera feed will appear here">
-            <div id="countdownOverlay" class="countdown-overlay">
-                <div id="countdownText" class="countdown-text">3</div>
+        <div class="camera-container" style="position:relative;">
+            <img id="droidcam-stream" src="http://{{ droidcam_ip }}:4747/video" alt="DroidCam Stream" crossorigin="anonymous" style="max-width:100%; border-radius:10px; object-fit: cover; object-position: center top;">
+            <!-- Make sure to move bitmap.png to the static directory: static/bitmap.png -->
+            <img id="bitmap-overlay" src="/static/bitmap.png" alt="Bitmap Overlay" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:3; border-radius:10px;">
+            <img id="selfie-preview" src="" alt="Selfie Preview" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:4; border-radius:10px;">
+            <canvas id="snapshot-canvas" style="display:none;"></canvas>
+            <div id="countdown-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:5em;font-weight:bold;color:white;text-shadow:2px 2px 8px #000;background:rgba(0,0,0,0.3);z-index:2;display:none;"></div>
+        </div>
+        
+        <div class="status" id="status">Camera starting...</div>
+        <div class="instructions-bar" style="display: flex; align-items: center; justify-content: flex-start; background: #f8f9fa; color: #222; border-radius: 10px; margin: 18px auto 0 auto; max-width: 640px; min-width: 320px; height: 50px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); font-size: 0.98em; padding: 0 10px; overflow: hidden;">
+            <img src="/static/gallery.png" alt="Gallery" style="height: 38px; width: 38px; margin-right: 12px; border-radius: 6px; background: #eee; object-fit: contain;">
+            <div style="display: flex; flex-direction: column; justify-content: center; height: 100%;">
+                <div style="font-weight: bold; font-size: 1em; margin-bottom: 2px;">How to Get Your Photo</div>
+                <div style="font-size: 0.93em; line-height: 1.2;">
+                    1. Connect to Wi-Fi: <span style="font-weight: 500;">selfie AP</span> (no password)<br>
+                    2. Scan the QR code below<br>
+                    3. Download your image from the gallery<br>
+                    4. Share the moment!
+                </div>
             </div>
         </div>
-        
-        <div class="controls">
-            <button id="startBtn" class="btn" onclick="startSelfie()">Start Camera</button>
-            <button id="captureBtn" class="btn" onclick="capturePhoto()" disabled>Take Photo</button>
+        <div style="text-align:center; margin: 10px 0 0 0;">
+            <div style="font-size: 1em; color: #fff; margin-bottom: 2px;">Scan the QR code below:</div>
+            <!-- Place for QR code, if you have one to insert -->
         </div>
-        
-        <div id="status" class="status" style="display: none;"></div>
     </div>
 
     <script>
-        let cameraStarted = false;
-        let capturing = false;
-        
-        function showStatus(message, type = 'info') {
-            const statusDiv = document.getElementById('status');
-            statusDiv.textContent = message;
-            statusDiv.className = `status ${type}`;
-            statusDiv.style.display = 'block';
-            
-            if (type === 'success' || type === 'error') {
-                setTimeout(() => {
-                    statusDiv.style.display = 'none';
-                }, 5000);
-            }
+    // WebSocket connection for ROS bridge
+    let ws = null;
+    const ARI_IP = 'ari-20c'; // Replace with your ARI IP if different
+
+    function connectWebSocket() {
+        ws = new WebSocket(`ws://${ARI_IP}:9090`);
+
+        ws.onopen = () => {
+            document.getElementById('rosStatus').innerHTML = '✅ ROS Connected';
+            console.log('Connected to ROS bridge');
+        };
+
+        ws.onclose = () => {
+            document.getElementById('rosStatus').innerHTML = '❌ ROS Disconnected';
+            console.log('Disconnected from ROS bridge');
+            // Attempt to reconnect after 3 seconds
+            setTimeout(connectWebSocket, 3000);
+        };
+
+        ws.onerror = (err) => {
+            console.error('WebSocket error:', err);
+            document.getElementById('rosStatus').innerHTML = '❌ ROS Error';
+        };
+    }
+
+    async function doMotion(motion) {
+        if (!motion) return;
+        try {
+            const response = await fetch('http://ari-20c/action/motion_manager', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    filename: motion
+                })
+            });
+            console.log('Motion response:', await response.json());
+        } catch (error) {
+            console.error('Error calling motion:', error);
         }
-        
-        function showLoading(message) {
-            const statusDiv = document.getElementById('status');
-            statusDiv.innerHTML = `<span class="loading"></span>${message}`;
-            statusDiv.className = 'status info';
-            statusDiv.style.display = 'block';
-        }
-        
-        async function startSelfie() {
-            const startBtn = document.getElementById('startBtn');
-            const captureBtn = document.getElementById('captureBtn');
-            const videoFeed = document.getElementById('videoFeed');
-            
-            if (cameraStarted) return;
-            
-            showLoading('Starting camera...');
-            startBtn.disabled = true;
-            
-            try {
-                const response = await fetch('/api/start_selfie', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Start video feed
-                    videoFeed.src = '/api/selfie_stream?' + new Date().getTime();
-                    videoFeed.onerror = function() {
-                        showStatus('Error loading camera feed. Check DroidCam connection.', 'error');
-                        resetCamera();
-                    };
-                    
-                    cameraStarted = true;
-                    captureBtn.disabled = false;
-                    startBtn.textContent = 'Camera Active';
-                    showStatus('Camera started! Position yourself and click "Take Photo"', 'success');
-                } else {
-                    showStatus(data.error || 'Failed to start camera', 'error');
-                    startBtn.disabled = false;
+    }
+
+    function sendAriSpeak(text) {
+        // Keep this function for TTS if you still want to use the backend API
+        fetch('/api/admin/ari_speak', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: text })
+        }).catch(err => console.error('TTS error:', err));
+    }
+
+    function showCountdown(seconds, onComplete) {
+        const overlay = document.getElementById('countdown-overlay');
+        overlay.style.display = 'flex';
+        let count = seconds;
+        overlay.textContent = count;
+        const interval = setInterval(() => {
+            count--;
+            if (count > 0) {
+                overlay.textContent = count;
+                if (count === 2) {
+                    sendAriSpeak('smile');
                 }
-            } catch (error) {
-                console.error('Error starting selfie:', error);
-                showStatus('Connection error. Check if DroidCam is running.', 'error');
-                startBtn.disabled = false;
+            } else {
+                clearInterval(interval);
+                overlay.style.display = 'none';
+                onComplete();
             }
-        }
-        
-        async function capturePhoto() {
-            if (capturing || !cameraStarted) return;
-            
-            capturing = true;
-            const captureBtn = document.getElementById('captureBtn');
-            const countdownOverlay = document.getElementById('countdownOverlay');
-            const countdownText = document.getElementById('countdownText');
-            
-            captureBtn.disabled = true;
-            
-            // Start countdown
-            countdownOverlay.style.display = 'flex';
-            
-            for (let i = 3; i > 0; i--) {
-                countdownText.textContent = i;
-                countdownText.style.animation = 'none';
-                setTimeout(() => {
-                    countdownText.style.animation = 'pulse 1s ease-in-out';
-                }, 10);
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-            
-            // Show "SMILE!"
-            countdownText.textContent = 'SMILE!';
-            countdownText.style.animation = 'pulse 1s ease-in-out';
-            
-            try {
-                showLoading('Capturing photo...');
-                
-                const response = await fetch('/api/take_selfie', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
+        }, 1000);
+    }
+
+    function showBitmapOverlay(duration, callback) {
+        const bitmap = document.getElementById('bitmap-overlay');
+        bitmap.style.display = 'block';
+        setTimeout(() => {
+            bitmap.style.display = 'none';
+            if (callback) callback();
+        }, duration);
+    }
+
+    function showSelfiePreview(dataURL, duration, callback) {
+        const preview = document.getElementById('selfie-preview');
+        preview.src = dataURL;
+        preview.style.display = 'block';
+        setTimeout(() => {
+            preview.style.display = 'none';
+            if (callback) callback();
+        }, duration);
+    }
+
+    function cancelAllMotions() {
+        // Send a cancel message to stop any running motions
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            const msg = {
+                op: "publish",
+                topic: "/play_motion/cancel",
+                msg: {
+                    stamp: {
+                        secs: Math.floor(Date.now() / 1000),
+                        nsecs: Math.floor((Date.now() % 1000) * 1000000)
                     }
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showStatus(`Photo saved as ${data.filename}!`, 'success');
-                    setTimeout(() => {
-                        window.location.href = '/gallery';
-                    }, 2000);
-                } else {
-                    showStatus(data.error || 'Failed to capture photo', 'error');
                 }
-            } catch (error) {
-                console.error('Error capturing photo:', error);
-                showStatus('Error capturing photo', 'error');
+            };
+            ws.send(JSON.stringify(msg));
+            console.log('All motions cancelled via WebSocket');
+        }
+    }
+
+    function capturePhoto() {
+        const img = document.getElementById('droidcam-stream');
+        const canvas = document.getElementById('snapshot-canvas');
+        // Crop 30px from the top (watermark)
+        const cropY = 30;
+        const cropHeight = img.naturalHeight - cropY;
+        canvas.width = img.naturalWidth;
+        canvas.height = cropHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, cropY, img.naturalWidth, cropHeight, 0, 0, img.naturalWidth, cropHeight);
+        const dataURL = canvas.toDataURL('image/jpeg');
+        document.getElementById('status').textContent = 'Uploading photo...';
+        
+        // Send to backend
+        fetch('/api/take_selfie', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: dataURL })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('status').textContent = 'Photo captured!';
+                doMotion('alive_1'); // Send alive_1 motion after capture
+                // Show selfie preview for 13 seconds, then go home
+                showSelfiePreview(dataURL, 13000, function() {
+                    window.location.href = '/';
+                });
+            } else {
+                document.getElementById('status').textContent = 'Error: ' + (data.error || 'Failed to capture photo');
             }
-            
-            // Hide countdown
-            countdownOverlay.style.display = 'none';
-            capturing = false;
-            captureBtn.disabled = false;
-        }
-        
-        function resetCamera() {
-            cameraStarted = false;
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('startBtn').textContent = 'Start Camera';
-            document.getElementById('captureBtn').disabled = true;
-            document.getElementById('videoFeed').src = '';
-        }
-        
-        // Auto-start camera when page loads
-        window.addEventListener('load', function() {
-            setTimeout(startSelfie, 1000);
+        })
+        .catch(() => {
+            document.getElementById('status').textContent = 'Error uploading photo';
         });
+    }
+
+    // Initialize WebSocket connection
+    connectWebSocket();
+
+    document.getElementById('droidcam-stream').onload = function() {
+        document.getElementById('status').textContent = 'Camera ready! Smile for the selfie...';
+        doMotion('selfie');
+        sendAriSpeak("Let's take a selfie!");
+        showCountdown(5, function() {
+            // Show bitmap.png for 1 second, then take selfie
+            showBitmapOverlay(1000, function() {
+                capturePhoto();
+            });
+        });
+    };
+
+    document.getElementById('droidcam-stream').onerror = function() {
+        document.getElementById('status').textContent = 'Camera connection failed. Check DroidCam connection.';
+    };
+
+    window.addEventListener('beforeunload', function() {
+        document.getElementById('droidcam-stream').src = '';
+        if (ws) {
+            ws.close();
+        }
+    });
     </script>
 </body>
 </html>

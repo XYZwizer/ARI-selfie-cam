@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Gallery{% endblock %}
+
+{% block content %}
+<a href="/" class="button back-button">Home</a>
+
+<div class="container">
+    <h1>Gallery</h1>
+    
+    {% if files %}
+        <p style="margin-bottom: 30px; opacity: 0.9;">
+            {{ files|length }} file(s) in your gallery
+        </p>
+        
+        <div class="gallery-grid">
+            {% for file in files %}
+                <div class="gallery-item">
+                    <div class="gallery-item-title">
+                        {{ file.replace('_', ' ').replace('.jpg', '').replace('.mp4', '') }}
+                    </div>
+                    
+                    {% if file.endswith('.jpg') %}
+                        <img src="/gallery/{{ file }}" alt="Photo: {{ file }}" 
+                             onclick="openLightbox('/gallery/{{ file }}', 'image')">
+                    {% elif file.endswith('.mp4') %}
+                        <video controls preload="metadata">
+                            <source src="/gallery/{{ file }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div style="margin-top: 50px;">
+            <p style="font-size: 1.3em; opacity: 0.7; margin-bottom: 30px;">
+                No photos or videos yet
+            </p>
+            <p style="opacity: 0.6; margin-bottom: 40px;">
+                Take some selfies or record interviews to see them here!
+            </p>
+            <div>
+                <a href="/selfie" class="button primary">
+                    Take a Selfie
+                </a>
+                <a href="/interview" class="button primary">
+                    Start Interview
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Lightbox for viewing images -->
+<div id="lightbox" class="lightbox" onclick="closeLightbox()">
+    <div class="lightbox-content">
+        <img id="lightbox-img" src="" alt="Lightbox image">
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openLightbox(src, type) {
+    if (type === 'image') {
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+        lightboxImg.src = src;
+        lightbox.style.display = 'flex';
+    }
+}
+
+function closeLightbox() {
+    const lightbox = document.getElementById('lightbox');
+    lightbox.style.display = 'none';
+}
+</script>
+{% endblock %} 

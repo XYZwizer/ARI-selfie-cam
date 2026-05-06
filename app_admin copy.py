@@ -25,7 +25,7 @@ app = Flask(__name__)
 # Configuration
 GALLERY_PATH = 'static/gallery'
 INTERVIEW_DURATION = 300  # 5 minutes max
-ARI_BASE_URL = 'http://ari-Xc'  # Default ARI robot URL - change as needed
+ARI_BASE_URL = 'http://ari-20c'  # Default ARI robot URL - change as needed
 
 # Ensure gallery directory exists
 os.makedirs(GALLERY_PATH, exist_ok=True)
