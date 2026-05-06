@@ -22,7 +22,6 @@ from PIL import Image
 import json
 from pathlib import Path
 from werkzeug.utils import secure_filename
-from flask import Markup
 import libcamera  # Added for libcamera import
 
 
@@ -998,7 +997,6 @@ def signal_handler(sig, frame):
 def local_slideshow():
     """Serve a local slideshow page using images from static/gallery."""
     import glob
-    from flask import Markup
     image_files = glob.glob(str(GALLERY_PATH / '*.jpg')) + glob.glob(str(GALLERY_PATH / '*.jpeg')) + glob.glob(str(GALLERY_PATH / '*.png')) + glob.glob(str(GALLERY_PATH / '*.bmp')) + glob.glob(str(GALLERY_PATH / '*.webp')) + glob.glob(str(GALLERY_PATH / '*.gif'))
     image_files.sort(key=os.path.getmtime, reverse=True)
     image_urls = [url_for('static', filename=f'gallery/{os.path.basename(f)}') for f in image_files]
