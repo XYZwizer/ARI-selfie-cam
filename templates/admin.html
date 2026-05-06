@@ -871,7 +871,7 @@
             const x = clientX - rect.left - this.centerX;
             const y = clientY - rect.top - this.centerY;
             
-            this.updatePosition(x, y);
+            this.updatePosition(this.normilize(x), this.normilize(y));
             e.preventDefault();
         }
         
@@ -890,47 +890,65 @@
             const y = e.clientY - rect.top - this.centerY;
             
             this.knob.style.transition = 'all 0.2s ease-out';
-            this.updatePosition(x, y);
+            this.updatePosition(this.normilize(x), this.normilize(y));
             
             setTimeout(() => this.returnToCenter(), 200);
         }
-        
+
+        normilize(v) {
+            const normalizedV = v / this.maxDistance;
+            return normalizedV;
+        }
+
         updatePosition(x, y) {
-            if (!movementEnabled) return;
-            
-            const distance = Math.sqrt(x * x + y * y);
-            
-            if (distance > this.maxDistance) {
+            //limit by max
+            const distance = Math.sqrt(x * x + y * y);    
+            if (distance > 1) {
                 const angle = Math.atan2(y, x);
-                x = Math.cos(angle) * this.maxDistance;
-                y = Math.sin(angle) * this.maxDistance;
+                x = Math.cos(angle);
+                y = Math.sin(angle);
             }
             
             this.currentX = x;
             this.currentY = y;
             
-            this.knob.style.transform = `translate(${x - 20}px, ${y - 20}px)`;
-            
-            const normalizedX = x / this.maxDistance;
-            const normalizedY = -y / this.maxDistance;
-            
-            sendTwist(normalizedX, normalizedY);
+            const half_max = this.maxDistance / 2.0;
+            this.knob.style.transform = `translate(${(x * this.maxDistance) - half_max}px, ${(y * this.maxDistance) - half_max}px)`;
+                    
+            // Send joystick data to server (removed value display)
+            sendTwist(x, -y);// Invert Y for intuitive up/down
         }
         
+        
         returnToCenter() {
-            this.currentX = 0;
-            this.currentY = 0;
-            this.knob.style.transform = 'translate(-50%, -50%)';
-            sendTwist(0, 0);
-        }
+            updatePosition(0,0);
     }
-
+    }
+    var movemnt_joystick = null;
     // Initialize joystick when page loads
     document.addEventListener('DOMContentLoaded', function() {
         const joystickArea = document.getElementById('joystickArea');
         const joystickKnob = document.getElementById('joystickKnob');
-        new VirtualJoystick(joystickArea, joystickKnob);
+        movemnt_joystick = new VirtualJoystick(joystickArea, joystickKnob);
         connectWebSocket();
+    });
+
+    var gamepad_poll_intervl = null;
+    var gamepad = null;
+
+    window.addEventListener("gamepadconnected", (event) => {
+        if (gamepad != null) return;
+        gamepad = event.gamepad;
+        gamepad_poll_intervl = setInterval(function() {
+            movemnt_joystick.updatePosition(gamepad.axes[0],gamepad.axes[1]);
+            console.log(gamepad.axes[0],gamepad.axes[1]);
+        }, 30);
+    });
+    window.addEventListener("gamepaddisconnected", (event) => {
+        if (gamepad == event.gamepad) {
+            gamepad = null;
+        };
+        clearInterval(gamepad_poll_intervl);
     });
 
     function sendAriTTS(text) {
@@ -983,9 +1001,9 @@
     async function remoteStartInterview() {
         const status = document.getElementById('interviewStatus');
         status.textContent = 'Sending start command...';
-	// sendMotionGoal('raise_mic', 10);
-       	// sendAriMotion("raise_mic") 
-	sendAriMotion("raise_mic",10)
+    // sendMotionGoal('raise_mic', 10);
+           // sendAriMotion("raise_mic") 
+    sendAriMotion("raise_mic",10)
         try {
             const response = await fetch('/api/interview_events', {
                 method: 'POST',
