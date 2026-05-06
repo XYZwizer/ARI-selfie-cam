@@ -9,7 +9,7 @@ import time
 import threading
 import signal
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, url_for
+from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, url_for, send_file
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
 import subprocess
@@ -133,6 +133,14 @@ camera_manager = CameraManager()
 def index():
     """Main menu page"""
     return render_template('index.html')
+
+@app.route('/gamepad_controll')
+def gamepad_controll():
+    return render_template('gamepad_controll.html')
+
+@app.route('/style.css')
+def style():
+    return send_file('static/style.css')
 
 @app.route('/selfie')
 def selfie_page():
