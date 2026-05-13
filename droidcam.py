@@ -283,9 +283,13 @@ def admin_page():
 def gamepad_controll():
     return render_template('gamepad_controll.html')
 
-@app.route('/style.css')
-def style():
-    return send_file('static/style.css')
+@app.route('/admin.css')
+def admin_style():
+    return send_file('static/admin.css')
+
+@app.route('/admin.js')
+def admin_js():
+    return send_file('static/admin.js')
 
 @app.route('/selfie')
 def selfie_page():
