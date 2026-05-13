@@ -44,10 +44,10 @@ def delete_file_options(filename):
 def clear_gallery_options():
     return '', 200
 
-# Configuration
+# Confixguration
 GALLERY_PATH = Path('static/gallery')
 INTERVIEW_DURATION = 300  # 5 minutes max
-ARI_BASE_URL = 'http://ari-20c'
+ARI_BASE_URL = 'http://192.168.0.100'
 # DROIDCAM_IP = '172.20.24.0'
 DROIDCAM_IP = '10.68.0.69'
 
@@ -241,10 +241,12 @@ def send_ari_tts(text, lang_id="en_GB"):
                 "lang_id": lang_id
             }
         }
+        print(f"[TTS] Sending to {url}: {payload}")
         response = requests.post(url, json=payload, timeout=10)
+        print(f"[TTS] Response status: {response.status_code}, body: {response.text}")
         return response.json() if response.status_code == 200 else None
     except Exception as e:
-        print(f"Error sending TTS to ARI: {e}")
+        print(f"[TTS] Error sending TTS to ARI: {e}")
         return None
 
 def send_ari_motion(motion_name):
@@ -253,10 +255,19 @@ def send_ari_motion(motion_name):
         url = f"{ARI_BASE_URL}/action/motion_manager"
         payload = {"filename": motion_name}
         response = requests.post(url, json=payload, timeout=10)
-        return response.json() if response.status_code == 200 else None
+        return response.json() if response.status_code in [200, 201] else None
     except Exception as e:
         print(f"Error sending motion to ARI: {e}")
         return None
+
+@app.route('/api/background-image')
+def background_image():
+    """Serve the background image"""
+    try:
+        return send_file('/home/selfie/image.png', mimetype='image/png')
+    except Exception as e:
+        print(f"Error serving background image: {e}")
+        return "", 404
 
 @app.route('/')
 def index():
@@ -285,6 +296,11 @@ def selfie_page():
 def interview_page():
     """Interview recording page"""
     return render_template('interview.html')
+
+@app.route('/greeter')
+def greeter_page():
+    """Greeter page - displays welcome and detects faces"""
+    return render_template('greeter.html')
 
 @app.route('/admin-gallery')
 def admin_gallery_page():
@@ -494,13 +510,17 @@ def admin_ari_speak():
         if not text:
             return jsonify({'error': 'No text provided'}), 400
         
+        print(f"[SPEAK] Received request with text: '{text}'")
         result = send_ari_tts(text, lang_id)
         if result:
+            print(f"[SPEAK] Success: {result}")
             return jsonify({'success': True, 'result': result})
         else:
+            print(f"[SPEAK] Failed to send TTS")
             return jsonify({'error': 'Failed to send TTS to ARI'}), 500
             
     except Exception as e:
+        print(f"[SPEAK] Exception: {str(e)}")
         return jsonify({'error': f'Error: {str(e)}'}), 500
 
 @app.route('/api/admin/ari_motion', methods=['POST'])
@@ -513,14 +533,90 @@ def admin_ari_motion():
         if not motion:
             return jsonify({'error': 'No motion specified'}), 400
         
+        print(f"[MOTION] Sending motion command: {motion}")
         result = send_ari_motion(motion)
         if result:
+            print(f"[MOTION] Success: {result}")
             return jsonify({'success': True, 'result': result})
         else:
+            print(f"[MOTION] Failed to send motion: {motion}")
             return jsonify({'error': 'Failed to send motion to ARI'}), 500
             
     except Exception as e:
+        print(f"[MOTION] Exception: {str(e)}")
         return jsonify({'error': f'Error: {str(e)}'}), 500
+
+# Global variable to store latest face data from ROS bridge
+_latest_face_data = {'ids': []}
+_face_data_lock = threading.Lock()
+_ros_bridge_connected = False
+
+def init_ros_bridge():
+    """Initialize connection to ROS websocket bridge"""
+    global _ros_bridge_connected
+    try:
+        import asyncio
+        import websockets
+        
+        async def subscribe_to_faces():
+            global _latest_face_data, _ros_bridge_connected
+            uri = f"ws://{ARI_BASE_URL.replace('http://', '')}:9090"
+            try:
+                async with websockets.connect(uri) as ws:
+                    _ros_bridge_connected = True
+                    print(f"[ROS BRIDGE] Connected to {uri}")
+                    
+                    # Subscribe to face detection topic
+                    subscribe_msg = {
+                        "op": "subscribe",
+                        "topic": "/humans/faces/tracked"
+                    }
+                    await ws.send(json.dumps(subscribe_msg))
+                    print("[ROS BRIDGE] Subscribed to /humans/faces/tracked")
+                    
+                    # Receive messages
+                    while True:
+                        try:
+                            msg = await asyncio.wait_for(ws.recv(), timeout=2.0)
+                            data = json.loads(msg)
+                            if 'msg' in data and 'ids' in data['msg']:
+                                with _face_data_lock:
+                                    _latest_face_data = {'ids': data['msg']['ids']}
+                        except asyncio.TimeoutError:
+                            continue
+                        except Exception as e:
+                            print(f"[ROS BRIDGE] Error receiving: {e}")
+                            break
+            except Exception as e:
+                print(f"[ROS BRIDGE] Connection error: {e}")
+                _ros_bridge_connected = False
+            
+            # Reconnect after delay
+            await asyncio.sleep(5)
+            await subscribe_to_faces()
+        
+        # Start the connection in a background thread
+        import threading
+        def run_async_loop():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(subscribe_to_faces())
+        
+        thread = threading.Thread(target=run_async_loop, daemon=True)
+        thread.start()
+        print("[ROS BRIDGE] Background thread started")
+        
+    except Exception as e:
+        print(f"[ROS BRIDGE] Failed to initialize: {e}")
+
+@app.route('/api/greeter/faces')
+def greeter_get_faces():
+    """Get face detection data from ROS bridge subscription"""
+    global _latest_face_data
+    with _face_data_lock:
+        ids = _latest_face_data.get('ids', [])
+    
+    return jsonify({'msg': {'ids': ids}}), 200
 
 @app.route('/api/admin/start_preview', methods=['POST'])
 def start_preview():
@@ -1060,6 +1156,9 @@ if __name__ == '__main__':
     signal.signal(signal.SIGTERM, signal_handler)
     
     try:
+        # Initialize ROS bridge connection for face detection
+        init_ros_bridge()
+        
         # Run the Flask app
         app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
     finally:

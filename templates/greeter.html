@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Greeter</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            padding: 20px;
+            position: relative;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            margin: 0;
+        }
+
+        /* ARI Touchscreen boundary accessibility - 15px minimum margin */
+        @supports (padding: max(0px)) {
+            body {
+                padding: max(20px, env(safe-area-inset-top, 0));
+            }
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        body > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .event-title {
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+
+        .event-logo {
+            max-width: 320px;
+            max-height: 200px;
+            object-fit: contain;
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        .status {
+            font-size: 16px;
+            opacity: 0.75;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .back-btn {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            padding: 12px 24px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.5);
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            backdrop-filter: blur(10px);
+            transition: all 0.2s;
+            z-index: 2;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.35);
+        }
+
+        .toggle-btn {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            padding: 12px 24px;
+            background: rgba(76, 175, 80, 0.6);
+            color: white;
+            border: 2px solid rgba(76, 175, 80, 1);
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.2s;
+            z-index: 2;
+        }
+
+        .toggle-btn:hover {
+            background: rgba(76, 175, 80, 0.9);
+            transform: scale(1.05);
+        }
+
+        .toggle-btn.off {
+            background: rgba(244, 67, 54, 0.6);
+            border-color: rgba(244, 67, 54, 1);
+        }
+
+        .toggle-btn.off:hover {
+            background: rgba(244, 67, 54, 0.9);
+        }
+    </style>
+</head>
+<body>
+
+    <img class="event-logo" id="eventLogo" src="" alt="Event Logo">
+    <div class="event-title" id="eventTitle">Welcome</div>
+    <div class="status" id="statusText">Greeter Active</div>
+
+    <button class="toggle-btn" id="toggleBtn" onclick="toggleGreeter()">GREETER: ON</button>
+    <button style="position: fixed; top: 30px; left: 30px; padding: 12px 24px; background: rgba(255, 193, 7, 0.6); color: white; border: 2px solid rgba(255, 193, 7, 1); border-radius: 12px; font-size: 15px; font-weight: bold; cursor: pointer; z-index: 2;" onclick="testGesture()">TEST GESTURE</button>
+    <a href="/admin" class="back-btn">← Back</a>
+
+<script>
+    const ARI_IP = '192.168.0.100';
+
+    const greetings = [
+        "Welcome!",
+        "Hello, nice to see you!",
+        "Glad you could make it!",
+        "Welcome, come on in!",
+        "Hello there, welcome!",
+        "So glad you're here!"
+    ];
+
+    const gestures = ['natural', 'natural', 'natural'];
+
+    let greetIndex = 0;
+    let greetCount = 0;
+    let lastGreetTime = 0;
+    const COOLDOWN_MS = 7000; // 7 second cooldown between greetings
+
+    let greetedFaces = new Set();
+    let pollTimer = null;
+    let greeterEnabled = true; // Toggle state
+
+    // Load event config from URL params or page config
+    const params = new URLSearchParams(window.location.search);
+    const title = params.get('title');
+    const logo = params.get('logo');
+
+    if (logo) {
+        const img = document.getElementById('eventLogo');
+        img.src = logo;
+        img.style.display = 'block';
+        document.getElementById('eventTitle').style.display = 'none';
+    } else if (title) {
+        document.getElementById('eventTitle').textContent = title;
+    }
+
+    function toggleGreeter() {
+        greeterEnabled = !greeterEnabled;
+        const btn = document.getElementById('toggleBtn');
+        const status = document.getElementById('statusText');
+        
+        if (greeterEnabled) {
+            btn.textContent = 'GREETER: ON';
+            btn.classList.remove('off');
+            status.textContent = 'Greeter Active';
+            console.log('✅ Greeter ENABLED');
+        } else {
+            btn.textContent = 'GREETER: OFF';
+            btn.classList.add('off');
+            status.textContent = 'Greeter Inactive';
+            greetedFaces.clear(); // Reset faces so they'll be greeted again when turned back on
+            console.log('❌ Greeter DISABLED');
+        }
+    }
+
+    function sendTTS(text) {
+        console.log('Sending TTS:', text);
+        fetch('/api/admin/ari_speak', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text })
+        })
+        .then(r => r.json())
+        .then(data => console.log('TTS Response:', data))
+        .catch(e => console.error('TTS Error:', e));
+    }
+
+    function sendGesture(motion) {
+        console.log('🤖 Sending gesture:', motion);
+        const payload = { motion };
+        console.log('📤 Payload:', JSON.stringify(payload));
+        fetch('/api/admin/ari_motion', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(r => {
+            console.log('📥 Response status:', r.status);
+            return r.json();
+        })
+        .then(data => {
+            console.log('✅ Motion Response:', data);
+            if (data.error) {
+                console.error('❌ Motion Error:', data.error);
+            }
+        })
+        .catch(e => console.error('❌ Motion Error:', e));
+    }
+
+    function testGesture() {
+        console.log('🧪 Testing gesture: natural');
+        sendGesture('natural');
+    }
+
+    function greet() {
+        const now = Date.now();
+        if (now - lastGreetTime < COOLDOWN_MS) {
+            console.log('Greeting on cooldown, skipping...');
+            return;
+        }
+        lastGreetTime = now;
+
+        // Pick next greeting (cycle through)
+        const text = greetings[greetIndex % greetings.length];
+        greetIndex++;
+        console.log('🎤 Greeting #' + greetIndex + ':', text);
+        sendTTS(text);
+
+        // Every 2nd greeting, also do a gesture
+        greetCount++;
+        if (greetCount % 2 === 0) {
+            const gesture = gestures[Math.floor(Math.random() * gestures.length)];
+            console.log('Scheduling gesture in 500ms:', gesture);
+            setTimeout(() => sendGesture(gesture), 500);
+        }
+    }
+
+    function pollFaces() {
+        fetch('/api/greeter/faces')
+            .then(r => r.json())
+            .then(data => {
+                const ids = data?.msg?.ids ?? [];
+                console.log('Face poll response:', data);
+                console.log('Face IDs detected:', ids);
+
+                // Only greet if greeter is enabled
+                if (greeterEnabled) {
+                    ids.forEach(id => {
+                        if (!greetedFaces.has(id)) {
+                            console.log('🆕 New face detected! ID:', id);
+                            greetedFaces.add(id);
+                            greet();
+                        }
+                    });
+                }
+            })
+            .catch(e => console.error('Face poll error:', e)); // Log errors
+    }
+
+    pollTimer = setInterval(pollFaces, 1500);
+    console.log('Greeter initialized. Polling Flask for faces every 1500ms...');
+    console.log('Using endpoint: /api/greeter/faces');
+    pollFaces();
+</script>
+</body>
+</html>
