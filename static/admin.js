@@ -277,7 +277,7 @@ class VirtualJoystick {
         this.knob.style.transform = `translate(${(x * this.maxDistance) - half_knob}px, ${(y * this.maxDistance) - half_knob}px)`;
                 
         // Send joystick data to server (rotated 90° clockwise to match API orientation)
-        sendTwist(y, x);
+        sendTwist(-y, -x);
     }
     
     
