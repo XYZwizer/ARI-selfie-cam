@@ -1,3 +1,16 @@
+// Force fullscreen on first user interaction (hides mobile browser chrome)
+function requestFullscreen() {
+    const el = document.documentElement;
+    if (el.requestFullscreen) {
+        el.requestFullscreen();
+    } else if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
+    }
+}
+['click', 'touchstart'].forEach(evt =>
+    document.addEventListener(evt, requestFullscreen, { once: true })
+);
+
 // IP Constants
 const ARI_IP = '192.168.0.100';
 const SLIDESHOW_IP = '192.168.0.133';
@@ -263,8 +276,8 @@ class VirtualJoystick {
         const half_knob = this.knob.offsetWidth / 2;
         this.knob.style.transform = `translate(${(x * this.maxDistance) - half_knob}px, ${(y * this.maxDistance) - half_knob}px)`;
                 
-        // Send joystick data to server (removed value display)
-        sendTwist(x, -y);// Invert Y for intuitive up/down
+        // Send joystick data to server (rotated 90° clockwise to match API orientation)
+        sendTwist(y, x);
     }
     
     
