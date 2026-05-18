@@ -462,6 +462,16 @@ function sendAriMotion(motion,priority) {
     });
 }
 
+
+function restartFaceTracker() {
+    //document.getElementById('FaceTrackerIndcator')
+    fetch('/api/restart_face_tracker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: {}
+    });
+}
+
 // Battery status
 function updateBatteryStatus() {
     fetch(`http://${ARI_IP}/topic/power_diagnostic`)

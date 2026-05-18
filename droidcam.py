@@ -230,6 +230,25 @@ class CameraManager:
 
 camera_manager = CameraManager()
 
+
+def stop_hri_head_node():
+    """ stop hri_head_node """
+    try:
+        url = f"{ARI_BASE_URL}/action/tts"
+        payload = {
+            "rawtext": {
+                "text": text,
+                "lang_id": lang_id
+            }
+        }
+        print(f"[TTS] Sending to {url}: {payload}")
+        response = requests.post(url, json=payload, timeout=10)
+        print(f"[TTS] Response status: {response.status_code}, body: {response.text}")
+        return response.json() if response.status_code == 200 else None
+    except Exception as e:
+        print(f"[TTS] Error sending TTS to ARI: {e}")
+        return None
+
 # ARI Robot Integration Functions
 def send_ari_tts(text, lang_id="en_GB"):
     """Send text-to-speech command to ARI robot"""
@@ -260,6 +279,28 @@ def send_ari_motion(motion_name):
         print(f"Error sending motion to ARI: {e}")
         return None
 
+def restart_ari_head_tracker():
+    """restarts ari hri face tracker node"""
+    try:
+        payload = {"app": "hri_face_detect"}
+        response = requests.post(f"{ARI_BASE_URL}/service/startup_stop", json=payload, timeout=10)
+        success = (response.status_code in [200, 201])
+        if not success: return success
+        time.sleep(2.0)
+        response = requests.post(f"{ARI_BASE_URL}/service/startup_start", json=payload, timeout=10)
+        print(response)
+        success = (response.status_code in [200, 201])
+        return success
+    except Exception as e:
+        print(f"Error stoping hri face tracker: {e}")
+        return None
+
+
+@app.route('/api/restart_face_tracker', methods=['POST'])
+def restart_face_tracker():
+    """ restarts hri face tracker """
+    restart_ari_head_tracker()
+    return jsonify({})
 @app.route('/api/background-image')
 def background_image():
     """Serve the background image"""
